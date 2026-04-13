@@ -1,0 +1,2412 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Tanay Veeragandham's design portfolio, focused on product thinking, information design, and making complex systems easier to understand and trust."
+    />
+    <meta name="theme-color" content="#f7f6f2" />
+    <title>Tanay Veeragandham | Design Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f6f2;
+        --surface: #ffffff;
+        --surface-2: #f1efe8;
+        --ink: #0e0e0c;
+        --ink-2: #5f5d58;
+        --ink-3: #9b9992;
+        --accent: #5847eb;
+        --accent-light: #eceafd;
+        --border: #e5e4df;
+        --border-dark: #cfcdc6;
+        --border-soft: rgba(229, 228, 223, 0.55);
+        --nav-bg: rgba(247, 246, 242, 0.96);
+        --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+        --risk-low: #d8d4cd;
+        --risk-mid: #d3a567;
+        --risk-high: #c97066;
+        --success: #4d8b68;
+        --success-light: #edf5ef;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #111110;
+          --surface: #1c1c1a;
+          --surface-2: #232320;
+          --ink: #f0efe9;
+          --ink-2: #a09f99;
+          --ink-3: #6f6e68;
+          --accent: #7b6ef5;
+          --accent-light: #1e1a3a;
+          --border: #2a2a27;
+          --border-dark: #3a3a36;
+          --border-soft: rgba(42, 42, 39, 0.6);
+          --nav-bg: rgba(17, 17, 16, 0.96);
+          --risk-low: #5b5851;
+          --risk-mid: #a47a47;
+          --risk-high: #aa665f;
+          --success: #7db08f;
+          --success-light: #1d2b21;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 16px;
+        line-height: 1.75;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      main,
+      nav,
+      section,
+      article,
+      aside,
+      footer {
+        display: block;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      img,
+      svg {
+        display: block;
+        max-width: 100%;
+      }
+
+      p,
+      ul,
+      blockquote,
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+      }
+
+      ul {
+        padding: 0;
+      }
+
+      hr {
+        border: 0;
+        border-top: 1px solid var(--border);
+        margin: 80px 0;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .shell {
+        width: calc(100% - 48px);
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+
+      .eyebrow,
+      .panel-label,
+      .metric-label,
+      .visual-caption,
+      .mini-status,
+      .flow-step,
+      .raw-columns,
+      .mini-tag,
+      .tag {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        color: var(--ink-3);
+        font-weight: 500;
+      }
+
+      .hero-title,
+      h2,
+      h3,
+      .pull-quote {
+        font-family: "Instrument Serif", Georgia, serif;
+        font-weight: 400;
+        color: var(--ink);
+      }
+
+      h2 {
+        font-size: clamp(1.75rem, 4vw, 2.75rem);
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+      }
+
+      h3 {
+        font-size: 1.5rem;
+        line-height: 1.15;
+      }
+
+      h4 {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.35;
+        font-weight: 500;
+        color: var(--ink);
+      }
+
+      .site-nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--nav-bg);
+        border-bottom: 1px solid var(--border-soft);
+        backdrop-filter: blur(6px);
+      }
+
+      .nav-inner {
+        min-height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .nav-name,
+      .nav-links a {
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .nav-name {
+        color: var(--ink);
+        white-space: nowrap;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .nav-links a {
+        color: var(--ink-2);
+        transition: color 400ms ease;
+      }
+
+      .nav-links a:hover,
+      .nav-links a:focus-visible {
+        color: var(--ink);
+      }
+
+      .hero {
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        padding: 128px 0 96px;
+      }
+
+      .hero-inner {
+        display: grid;
+        gap: 24px;
+        align-content: center;
+        max-width: 760px;
+      }
+
+      .hero-title {
+        font-size: clamp(3.2rem, 8vw, 6.5rem);
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+      }
+
+      .hero-kicker {
+        max-width: 640px;
+        font-family: "Instrument Serif", Georgia, serif;
+        font-size: clamp(1.35rem, 3vw, 2.1rem);
+        line-height: 1.15;
+        color: var(--ink);
+      }
+
+      .hero-copy {
+        max-width: 620px;
+        font-size: 1.125rem;
+        color: var(--ink-2);
+      }
+
+      .hero-links,
+      .contact-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .hero-links a,
+      .text-link,
+      .contact-links a,
+      .filtered-link {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        border-bottom: 1px solid currentColor;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .hero-links a,
+      .text-link,
+      .filtered-link {
+        color: var(--ink);
+      }
+
+      .section {
+        padding: 96px 0;
+      }
+
+      .section-heading {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 56px;
+        max-width: 700px;
+      }
+
+      .about-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.95fr);
+        gap: 48px;
+        align-items: start;
+      }
+
+      .about-copy {
+        max-width: 700px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .about-copy p:not(.eyebrow),
+      .project-summary,
+      .case-header p,
+      .overview-item p:last-child,
+      .case-section p,
+      .flow-card p:last-child,
+      .principle-card p:last-child,
+      .contact-inner p:not(.eyebrow),
+      .secondary-card p:last-child {
+        color: var(--ink-2);
+      }
+
+      .facts {
+        display: grid;
+        gap: 16px;
+      }
+
+      .fact,
+      .project-card,
+      .principle-card,
+      .decision-list li,
+      .flow-card,
+      .secondary-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+
+      .fact {
+        padding: 20px 24px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .fact p:last-child {
+        color: var(--ink);
+      }
+
+      .project-stack {
+        display: grid;
+        gap: 24px;
+      }
+
+      .project-card {
+        padding: 40px;
+        display: grid;
+        gap: 20px;
+        transition: border-color 400ms ease, transform 400ms ease, box-shadow 300ms ease;
+      }
+
+      .project-card:hover,
+      .project-card:focus-within {
+        border-color: var(--border-dark);
+        transform: translateY(-1px);
+      }
+
+      .project-card.is-open {
+        border-color: var(--accent);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+      }
+
+      .project-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .tag,
+      .mini-tag,
+      .chat-pill,
+      .mini-status,
+      .flow-step,
+      .raw-flag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        border-radius: 9999px;
+        font-weight: 500;
+      }
+
+      .tag {
+        padding: 4px 12px;
+        background: var(--accent-light);
+        color: var(--accent);
+      }
+
+      .visual-block {
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .visual-risk,
+      .visual-chat,
+      .visual-data,
+      .visual-pulse,
+      .visual-ar,
+      .visual-physics {
+        padding: 24px;
+        background: var(--accent-light);
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .metric-tile,
+      .sparkline-card,
+      .intake-panel,
+      .recommendation-panel,
+      .recommendation-card,
+      .recommendation-note,
+      .data-panel,
+      .clean-row,
+      .flow-card,
+      .pulse-panel,
+      .ar-card,
+      .pulse-summary-card {
+        border: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .metric-tile {
+        min-height: 112px;
+        padding: 16px;
+        border-radius: 12px;
+        display: grid;
+        gap: 8px;
+        align-content: start;
+      }
+
+      .metric-label {
+        color: var(--ink-3);
+      }
+
+      .metric-value {
+        font-size: 1.5rem;
+        line-height: 1.1;
+        color: var(--ink);
+      }
+
+      .metric-bar {
+        display: block;
+        height: 4px;
+        margin-top: auto;
+        border-radius: 9999px;
+      }
+
+      .tone-low {
+        background: var(--risk-low);
+      }
+
+      .tone-mid {
+        background: var(--risk-mid);
+      }
+
+      .tone-high {
+        background: var(--risk-high);
+      }
+
+      .sparkline-card {
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .mini-status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .mini-status {
+        padding: 4px 10px;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--ink-2);
+      }
+
+      .sparkline-card svg {
+        width: 100%;
+        height: 96px;
+      }
+
+      .sparkline-card path {
+        fill: none;
+        stroke: var(--risk-high);
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+
+      .visual-caption {
+        margin-top: 16px;
+        color: var(--ink-3);
+      }
+
+      .flow-rail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .flow-step {
+        padding: 4px 10px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--ink-2);
+      }
+
+      .chat-pill {
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 4px 12px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--ink);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        background: var(--success);
+      }
+
+      .medical-flow {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr);
+        gap: 16px;
+      }
+
+      .intake-panel,
+      .recommendation-panel {
+        padding: 16px;
+        border-radius: 12px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .panel-label {
+        color: var(--ink-3);
+      }
+
+      .select-card,
+      .check-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .select-card {
+        background: var(--accent-light);
+        color: var(--ink);
+      }
+
+      .check-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink-2);
+        background: var(--surface);
+      }
+
+      .check-item-active {
+        color: var(--ink);
+        background: rgba(88, 71, 235, 0.06);
+      }
+
+      .check-box {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 14px;
+        border: 1px solid var(--border-dark);
+        border-radius: 4px;
+        background: var(--surface);
+      }
+
+      .check-item-active .check-box {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .recommendation-card,
+      .recommendation-note {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      .recommendation-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .recommendation-card p,
+      .recommendation-note p:last-child {
+        color: var(--ink-2);
+      }
+
+      .mini-tag {
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: var(--accent-light);
+        color: var(--accent);
+      }
+
+      .mini-tag-success {
+        background: var(--success-light);
+        color: var(--success);
+      }
+
+      .mini-tag-alert {
+        background: rgba(201, 112, 102, 0.16);
+        color: var(--risk-high);
+      }
+
+      .visual-data {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+        gap: 24px;
+        align-items: stretch;
+      }
+
+      .data-divider {
+        background: var(--border);
+      }
+
+      .data-panel {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      .data-before,
+      .data-after {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .raw-columns,
+      .raw-row {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr) 72px 64px;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .raw-columns {
+        color: var(--ink-3);
+        padding: 0 2px;
+      }
+
+      .raw-row {
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(176, 175, 169, 0.14);
+        font-size: 0.875rem;
+        color: var(--ink-2);
+      }
+
+      .raw-row-flagged {
+        background: rgba(201, 112, 102, 0.12);
+        border-color: rgba(201, 112, 102, 0.32);
+      }
+
+      .raw-flag {
+        padding: 2px 8px;
+        font-size: 0.75rem;
+        color: var(--risk-high);
+        background: rgba(201, 112, 102, 0.16);
+      }
+
+      .raw-flag-clear {
+        color: var(--ink-3);
+        background: rgba(176, 175, 169, 0.2);
+      }
+
+      .clean-row {
+        padding: 16px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .row-main {
+        display: grid;
+        gap: 4px;
+      }
+
+      .row-sub {
+        font-size: 0.8125rem;
+        color: var(--ink-2);
+      }
+
+      .filtered-link {
+        margin-top: 4px;
+        color: var(--ink);
+      }
+
+      .visual-data .visual-caption {
+        grid-column: 1 / -1;
+      }
+
+      .pulse-layout {
+        display: grid;
+        grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1.18fr);
+        gap: 16px;
+      }
+
+      .pulse-panel,
+      .ar-card,
+      .secondary-card,
+      .pulse-summary-card {
+        border-radius: 12px;
+        box-shadow: var(--shadow-card);
+      }
+
+      .pulse-panel {
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .pulse-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .pulse-state {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        color: var(--risk-mid);
+        background: rgba(211, 165, 103, 0.16);
+      }
+
+      .pulse-micro,
+      .pulse-note {
+        color: var(--ink-2);
+      }
+
+      .pulse-core-grid,
+      .pulse-summary-grid,
+      .secondary-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .pulse-core-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .pulse-summary-grid,
+      .secondary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .pulse-core-item {
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface-2);
+        display: grid;
+        gap: 4px;
+      }
+
+      .pulse-core-item span {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .pulse-core-item strong,
+      .pulse-summary-value {
+        font-size: 1.125rem;
+        line-height: 1.2;
+        font-weight: 500;
+        color: var(--ink);
+      }
+
+      .pulse-summary-card {
+        padding: 14px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .pulse-note {
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface-2);
+      }
+
+      .ar-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+        gap: 16px;
+        align-items: stretch;
+      }
+
+      .ar-stage {
+        position: relative;
+        min-height: 320px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .ar-grid {
+        position: absolute;
+        left: 12%;
+        right: 12%;
+        height: 72px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        transform: perspective(640px) rotateX(72deg);
+      }
+
+      .ar-grid-a {
+        bottom: 20%;
+      }
+
+      .ar-grid-b {
+        bottom: 11%;
+        left: 18%;
+        right: 18%;
+      }
+
+      .ar-object {
+        position: absolute;
+        border: 1px solid var(--accent);
+        background: rgba(88, 71, 235, 0.08);
+        border-radius: 14px;
+      }
+
+      .ar-object-main {
+        width: 124px;
+        height: 78px;
+        left: 34%;
+        bottom: 33%;
+        transform: rotate(-12deg);
+      }
+
+      .ar-object-secondary {
+        width: 68px;
+        height: 44px;
+        left: 56%;
+        bottom: 43%;
+        transform: rotate(8deg);
+      }
+
+      .ar-hand {
+        position: absolute;
+        right: 14%;
+        bottom: 18%;
+        width: 92px;
+        height: 92px;
+        border: 1px solid var(--border);
+        border-radius: 9999px;
+        background: var(--surface-2);
+      }
+
+      .ar-hand-thumb,
+      .ar-hand-index {
+        position: absolute;
+        display: block;
+        width: 14px;
+        height: 44px;
+        border-radius: 9999px;
+        background: var(--border-dark);
+      }
+
+      .ar-hand-thumb {
+        left: 30px;
+        top: 28px;
+        transform: rotate(18deg);
+      }
+
+      .ar-hand-index {
+        right: 28px;
+        top: 18px;
+        transform: rotate(-12deg);
+      }
+
+      .ar-side {
+        display: grid;
+        gap: 12px;
+      }
+
+      .ar-card,
+      .secondary-card {
+        padding: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .physics-shell {
+        display: grid;
+        gap: 16px;
+      }
+
+      .physics-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .physics-stage {
+        position: relative;
+        min-height: 280px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .physics-line {
+        position: absolute;
+        height: 2px;
+        background: var(--border-dark);
+        transform-origin: left center;
+      }
+
+      .physics-line-a {
+        top: 32%;
+        left: 17%;
+        width: 34%;
+        transform: rotate(12deg);
+      }
+
+      .physics-line-b {
+        top: 52%;
+        left: 40%;
+        width: 24%;
+        transform: rotate(-22deg);
+      }
+
+      .physics-line-c {
+        top: 56%;
+        left: 22%;
+        width: 42%;
+        transform: rotate(16deg);
+      }
+
+      .physics-node {
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border-radius: 9999px;
+        border: 1px solid var(--border-dark);
+        background: var(--surface-2);
+      }
+
+      .physics-node-a {
+        top: 26%;
+        left: 14%;
+      }
+
+      .physics-node-b {
+        top: 34%;
+        left: 48%;
+        background: rgba(88, 71, 235, 0.08);
+        border-color: var(--accent);
+      }
+
+      .physics-node-c {
+        top: 50%;
+        left: 36%;
+      }
+
+      .physics-node-d {
+        top: 62%;
+        left: 60%;
+      }
+
+      .secondary-grid {
+        gap: 24px;
+      }
+
+      .secondary-card {
+        padding: 28px;
+      }
+
+      .project-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: fit-content;
+        border: 0;
+        border-bottom: 1px solid currentColor;
+        background: none;
+        padding: 0;
+        color: var(--ink);
+        font: inherit;
+        font-weight: 500;
+        line-height: 1.4;
+        cursor: pointer;
+      }
+
+      .project-toggle:hover {
+        color: var(--accent);
+      }
+
+      .project-toggle-icon {
+        display: inline-block;
+        transition: transform 220ms ease;
+      }
+
+      .project-card.is-open .project-toggle-icon {
+        transform: rotate(180deg);
+      }
+
+      .case-inline {
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transition: max-height 320ms ease, opacity 220ms ease, margin-top 220ms ease;
+        margin-top: 0;
+      }
+
+      .case-inline.is-open {
+        opacity: 1;
+        margin-top: 4px;
+      }
+
+      .case-inline-inner {
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .case-header {
+        display: grid;
+        gap: 16px;
+        padding: 48px;
+        border-radius: 12px;
+        background: var(--accent-light);
+      }
+
+      .case-header p {
+        max-width: 720px;
+      }
+
+      .overview-strip {
+        margin-top: 24px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .overview-item {
+        padding: 24px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .overview-item + .overview-item {
+        border-left: 1px solid var(--border);
+      }
+
+      .case-body {
+        width: 100%;
+        max-width: 760px;
+        margin: 40px auto 0;
+        display: grid;
+        gap: 40px;
+      }
+
+      .case-section {
+        display: grid;
+        gap: 16px;
+      }
+
+      .flow-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .flow-grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .flow-card {
+        padding: 24px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .decision-list {
+        list-style: none;
+        display: grid;
+        gap: 16px;
+      }
+
+      .decision-list li {
+        padding: 24px;
+        color: var(--ink-2);
+      }
+
+      .decision-list span {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--ink);
+      }
+
+      .pull-quote {
+        padding-left: 24px;
+        border-left: 3px solid var(--accent);
+        font-size: 1.5rem;
+        line-height: 1.4;
+        font-style: italic;
+      }
+
+      .principles-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      .principle-card {
+        padding: 32px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .contact-section {
+        margin-top: 80px;
+        padding: 96px 0;
+        background: var(--ink);
+        color: var(--bg);
+      }
+
+      .contact-inner {
+        display: grid;
+        gap: 16px;
+      }
+
+      .contact-inner .eyebrow,
+      .contact-inner h2,
+      .contact-inner p,
+      .contact-links a {
+        color: var(--bg);
+      }
+
+      .contact-note {
+        max-width: 560px;
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(16px);
+        transition: opacity 400ms ease, transform 400ms ease;
+      }
+
+      .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (max-width: 1080px) {
+        .hero {
+          min-height: auto;
+          padding: 112px 0 88px;
+        }
+
+        .case-header {
+          padding: 40px;
+        }
+
+        .overview-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .overview-item:nth-child(3),
+        .overview-item:nth-child(4) {
+          border-top: 1px solid var(--border);
+        }
+
+        .overview-item:nth-child(3) {
+          border-left: 0;
+        }
+      }
+
+      @media (max-width: 820px) {
+        .shell {
+          width: calc(100% - 32px);
+        }
+
+        .section {
+          padding: 80px 0;
+        }
+
+        .about-grid,
+        .metric-row,
+        .medical-flow,
+        .visual-data,
+        .flow-grid,
+        .flow-grid-3,
+        .principles-grid,
+        .pulse-layout,
+        .ar-layout,
+        .secondary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .project-card,
+        .principle-card,
+        .secondary-card {
+          padding: 28px;
+        }
+
+        .project-meta {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .case-header {
+          padding: 32px 24px;
+        }
+
+        .data-divider {
+          width: 100%;
+          height: 1px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .nav-inner {
+          min-height: auto;
+          padding: 12px 0;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .nav-name {
+          white-space: normal;
+          line-height: 1.3;
+        }
+
+        .nav-links {
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .hero {
+          padding: 96px 0 72px;
+        }
+
+        .hero-links,
+        .contact-links {
+          gap: 16px;
+        }
+
+        .overview-strip,
+        .pulse-core-grid,
+        .pulse-summary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .overview-item + .overview-item,
+        .overview-item:nth-child(3) {
+          border-left: 0;
+        }
+
+        .overview-item + .overview-item {
+          border-top: 1px solid var(--border);
+        }
+
+        .raw-columns,
+        .raw-row {
+          grid-template-columns: 48px minmax(0, 1fr) 60px 52px;
+          gap: 8px;
+          font-size: 0.75rem;
+        }
+
+        .clean-row,
+        .recommendation-top {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .ar-stage {
+          min-height: 260px;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .hero-title {
+          font-size: 3rem;
+        }
+
+        .hero-kicker {
+          font-size: 1.35rem;
+        }
+
+        .project-card,
+        .fact,
+        .principle-card,
+        .secondary-card {
+          padding: 24px;
+        }
+
+        .visual-risk,
+        .visual-chat,
+        .visual-data,
+        .visual-pulse,
+        .visual-ar,
+        .visual-physics {
+          padding: 20px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .reveal,
+        .case-inline,
+        .project-toggle-icon {
+          transition: none;
+        }
+
+        .reveal {
+          opacity: 1;
+          transform: none;
+        }
+
+        .project-card,
+        .nav-links a {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="site-nav">
+      <div class="shell nav-inner">
+        <a class="nav-name" href="#top">Tanay Veeragandham</a>
+        <div class="nav-links">
+          <a href="#work">Work</a>
+          <a href="#about">About</a>
+          <a href="#contact">Contact</a>
+        </div>
+      </div>
+    </nav>
+
+    <main id="top">
+      <section class="hero">
+        <div class="shell hero-inner">
+          <h1 class="hero-title reveal">Tanay<br />Veeragandham</h1>
+          <p class="hero-kicker reveal">
+            Physics graduate. Data engineer by background. Interested in how complex systems turn into usable products.
+          </p>
+          <p class="hero-copy reveal">
+            I started in Physics and data work, building systems that produced useful outputs only if someone could actually interpret them. That is what pulled me toward product design: deciding what shows up on screen, what stays in the background, and what helps someone make a better decision.
+          </p>
+          <div class="hero-links reveal">
+            <a href="#work">Selected work</a>
+            <a href="#contact">Get in touch</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="about">
+        <div class="shell">
+          <div class="about-grid">
+            <div class="about-copy reveal" data-reveal-group>
+              <div>
+                <p class="eyebrow">About</p>
+                <h2>From technical systems to usable products.</h2>
+              </div>
+              <p>
+                I studied Physics at the University of Groningen, then worked as a Data Engineer and Quantitative Research Intern at Syntagma Labs. Most of that work sat close to models, pipelines, and noisy inputs.
+              </p>
+              <p>
+                The part I kept coming back to was what happened after the system produced an answer. A good model can still be hard to use if the interface does not show the right signal, the right context, or the right amount of uncertainty.
+              </p>
+              <p>
+                That is the thread through these projects. I am most interested in products where system behavior has to become legible: a desktop diagnostic widget, a hand-controlled AR scene, a simulation, or a constrained recommendation flow.
+              </p>
+            </div>
+            <aside class="facts reveal">
+              <div class="fact">
+                <p class="eyebrow">Background</p>
+                <p>Physics &amp; data systems</p>
+              </div>
+              <div class="fact">
+                <p class="eyebrow">Education</p>
+                <p>BSc Physics, University of Groningen</p>
+              </div>
+              <div class="fact">
+                <p class="eyebrow">Experience</p>
+                <p>Data Engineer / Quantitative Research Intern, Syntagma Labs</p>
+              </div>
+              <div class="fact">
+                <p class="eyebrow">Based</p>
+                <p>UK</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <hr />
+
+      <section class="section" id="work">
+        <div class="shell">
+          <div class="section-heading reveal">
+            <p class="eyebrow">Selected work</p>
+            <h2>Four projects where the interface has to explain the system.</h2>
+          </div>
+
+          <div class="project-stack">
+            <!-- Pulse -->
+            <article class="project-card reveal" data-expandable-project>
+              <div class="project-meta">
+                <p class="eyebrow">01</p>
+                <span class="tag">Desktop utility</span>
+              </div>
+              <h3>Pulse</h3>
+              <p class="project-summary">
+                A widget-first Windows utility designed to answer what changed, whether the laptop is constrained, and whether the problem deserves deeper inspection without turning diagnostics into a wall of telemetry.
+              </p>
+              <div class="visual-block visual-pulse" aria-hidden="true">
+                <div class="pulse-layout">
+                  <div class="pulse-panel pulse-compact">
+                    <div class="pulse-topline">
+                      <p class="panel-label">Compact widget</p>
+                      <span class="pulse-state">Warm</span>
+                    </div>
+                    <h4>System feels hotter than usual</h4>
+                    <p class="pulse-micro">
+                      Core state first. No charts, no gamer cues, no pretending every sensor is available.
+                    </p>
+                    <div class="pulse-core-grid">
+                      <div class="pulse-core-item">
+                        <span>CPU</span>
+                        <strong>42%</strong>
+                      </div>
+                      <div class="pulse-core-item">
+                        <span>RAM</span>
+                        <strong>68%</strong>
+                      </div>
+                      <div class="pulse-core-item">
+                        <span>Temp</span>
+                        <strong>71 C</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pulse-panel pulse-expanded">
+                    <div class="pulse-summary-grid">
+                      <div class="pulse-summary-card">
+                        <p class="panel-label">Battery pressure</p>
+                        <span class="pulse-summary-value">Higher than expected</span>
+                      </div>
+                      <div class="pulse-summary-card">
+                        <p class="panel-label">Recent change</p>
+                        <span class="pulse-summary-value">Background load increased</span>
+                      </div>
+                    </div>
+                    <div class="pulse-note">
+                      Expanded panel adds recent history, plain-English explanation, and a route to process-level detail one layer deeper.
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="project-toggle" type="button" aria-expanded="false">
+                <span>View full case study</span>
+                <span class="project-toggle-icon">↓</span>
+              </button>
+
+              <div class="case-inline" aria-hidden="true">
+                <div class="case-inline-inner">
+                  <header class="case-header">
+                    <p class="eyebrow">Project 01</p>
+                    <h2>Pulse</h2>
+                    <p>
+                      A calm desktop utility built to answer whether the laptop is hot, constrained, draining battery unusually, or behaving differently from a few minutes ago.
+                    </p>
+                  </header>
+
+                  <div class="overview-strip">
+                    <div class="overview-item">
+                      <p class="eyebrow">Role</p>
+                      <p>Product framing, interaction design, system-state modelling</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Type</p>
+                      <p>Windows desktop utility</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Timeline</p>
+                      <p>Ongoing product build</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Status</p>
+                      <p>Tauri 2 desktop app with persistent system history</p>
+                    </div>
+                  </div>
+
+                  <div class="case-body">
+                    <article class="case-section">
+                      <h3>The problem</h3>
+                      <p>
+                        When a laptop suddenly feels hot, slow, or battery-hungry, the user usually has a simple question: what changed? Existing tools are good at showing telemetry, but much worse at explaining whether performance is actually constrained or whether something unusual is happening.
+                      </p>
+                      <p>
+                        I did not want to make a prettier Task Manager. The product had to be diagnosis-first, honest about missing telemetry, and calm enough to live on the desktop without feeling like a gamer overlay.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Who used it</h3>
+                      <p>
+                        The user is someone working on a Windows laptop who notices that the machine feels off. They are not starting with a performance graph in mind. They want to know whether the system is warm, actually constrained, or just briefly busy.
+                      </p>
+                      <p>
+                        That means the first layer has to answer the question quickly, while deeper layers can hold the process detail and recent history for someone who wants to inspect further.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>My role and process</h3>
+                      <p>
+                        I framed Pulse around three layers: a compact widget, an expanded panel, and a secondary details window. The design work was deciding what each layer should answer, and what should stay out of the first glance.
+                      </p>
+                      <p>
+                        Underneath that, the product uses a Rust backend to own the system logic, a low-overhead sampling engine, and a heuristic state model for battery and thermal pressure. The React and TypeScript frontend renders backend-authored view state, which keeps the interface clean and stops the widget from becoming a second source of truth.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Key design decisions</h3>
+                      <ul class="decision-list">
+                        <li>
+                          <span>Keep the widget small and diagnostic.</span>
+                          The compact view only shows core state, CPU, RAM, and temperature when supported. Offender processes and richer explanation are intentionally pushed into deeper layers.
+                        </li>
+                        <li>
+                          <span>Use state, not charts, in the first layer.</span>
+                          The widget avoids tiny graphs because they look informative while often being harder to read than a direct system state. A single clear label is more useful when the user is checking quickly.
+                        </li>
+                        <li>
+                          <span>Handle partial telemetry honestly.</span>
+                          Thermal data is not always available. Instead of faking certainty or showing an error state, Pulse reduces the visible metrics and explains what it can still infer.
+                        </li>
+                      </ul>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>What the user sees</h3>
+                      <p>
+                        The first thing the user sees is a compact widget with a single state label and a short explanation: healthy, warm, hot, thermally constrained, or critical. Below that sit CPU and RAM, plus temperature when the system exposes it.
+                      </p>
+                      <p>
+                        Opening the expanded panel adds recent change, battery pressure, and plain-English interpretation of the current state. A secondary details window holds process-level information, tray controls, pause and resume, and the stored history in SQLite so the product can answer not just what is happening now, but what changed recently.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>How the information is layered</h3>
+                      <div class="flow-grid flow-grid-3">
+                        <div class="flow-card">
+                          <p class="eyebrow">1</p>
+                          <h4>Compact widget</h4>
+                          <p>
+                            Shows the current system state and only the minimum metrics needed to judge whether the machine feels normal.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">2</p>
+                          <h4>Expanded panel</h4>
+                          <p>
+                            Adds explanation, pressure cues, and recent change so the user can tell whether the problem is building or settling.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">3</p>
+                          <h4>Detail layer</h4>
+                          <p>
+                            Process information, history, and tray actions stay one layer deeper for people who need to investigate without burdening every user.
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Outcome</h3>
+                      <p>
+                        The strongest shift was moving away from telemetry display and toward system diagnosis. Once the product was framed around the question the user actually has, the interface became more restrained and much easier to trust.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>What I’d change</h3>
+                      <p>
+                        The current heuristics still rely on fixed thresholds. The next step would be learning baselines from the individual machine so Pulse can tell the difference between normal sustained load and behavior that is genuinely unusual for that laptop.
+                      </p>
+                    </article>
+
+                    <blockquote class="pull-quote">
+                      The widget only works if it answers what changed without forcing the user to read a dashboard.
+                    </blockquote>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <!-- AirCoaster -->
+            <article class="project-card reveal" data-expandable-project>
+              <div class="project-meta">
+                <p class="eyebrow">02</p>
+                <span class="tag">AR interaction</span>
+              </div>
+              <h3>AirCoaster</h3>
+              <p class="project-summary">
+                A native Android AR app about placing, moving, and resizing 3D objects with gestures that feel stable enough to trust in a real room.
+              </p>
+              <div class="visual-block visual-ar" aria-hidden="true">
+                <div class="ar-layout">
+                  <div class="ar-stage">
+                    <div class="ar-grid ar-grid-a"></div>
+                    <div class="ar-grid ar-grid-b"></div>
+                    <div class="ar-object ar-object-main"></div>
+                    <div class="ar-object ar-object-secondary"></div>
+                    <div class="ar-hand">
+                      <span class="ar-hand-thumb"></span>
+                      <span class="ar-hand-index"></span>
+                    </div>
+                  </div>
+                  <div class="ar-side">
+                    <div class="ar-card">
+                      <p class="panel-label">Gesture state</p>
+                      <h4>Pinch to move</h4>
+                      <p>
+                        Interaction is stateful, so the object does not jump on every noisy frame.
+                      </p>
+                    </div>
+                    <div class="ar-card">
+                      <p class="panel-label">Tracking</p>
+                      <h4>Preview before commit</h4>
+                      <p>
+                        Placement becomes real only when the scene is stable enough to hold it.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p class="visual-caption">
+                  Rear-camera AR with hand-based interaction and restrained status cues.
+                </p>
+              </div>
+              <button class="project-toggle" type="button" aria-expanded="false">
+                <span>View full case study</span>
+                <span class="project-toggle-icon">↓</span>
+              </button>
+
+              <div class="case-inline" aria-hidden="true">
+                <div class="case-inline-inner">
+                  <header class="case-header">
+                    <p class="eyebrow">Project 02</p>
+                    <h2>AirCoaster</h2>
+                    <p>
+                      A native Android AR interaction study focused on making placement, movement, and resizing feel stable enough to believe.
+                    </p>
+                  </header>
+
+                  <div class="overview-strip">
+                    <div class="overview-item">
+                      <p class="eyebrow">Role</p>
+                      <p>Interaction design, product direction, prototyping</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Type</p>
+                      <p>Native Android AR app</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Timeline</p>
+                      <p>Independent build</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Status</p>
+                      <p>ARCore and hand tracking working together in a native flow</p>
+                    </div>
+                  </div>
+
+                  <div class="case-body">
+                    <article class="case-section">
+                      <h3>The problem</h3>
+                      <p>
+                        The original browser-based approach could prove the idea, but it was not good enough to make the interaction believable. Drift, lag, false placements, and unstable pinch detection all made the product feel like a demo instead of a tool.
+                      </p>
+                      <p>
+                        The design problem was not just getting an object into a room. It was making the relationship between user intention and system response feel tight enough that people would trust what they were seeing.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Who used it</h3>
+                      <p>
+                        The user is holding up a phone, looking through the rear camera, and trying to place or adjust a 3D object directly in space. They are making quick judgement calls with their hands and their eyes, so every unstable response immediately feels wrong.
+                      </p>
+                      <p>
+                        That makes AR interaction unusually unforgiving. Small delays, bad gesture reads, or objects slipping across the plane are not minor bugs. They break the whole experience.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>My role and process</h3>
+                      <p>
+                        I changed the product direction once it became clear that the browser implementation was too limited. Moving to native Android let me use ARCore more directly, share the camera with MediaPipe-based hand tracking, and treat the interaction as a real-time product problem instead of a technical demo.
+                      </p>
+                      <p>
+                        From there I focused on the interaction states: when an object is only a preview, when a pinch should count as intent, and how movement or resizing should hold steady instead of reacting to every noisy frame.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Key design decisions</h3>
+                      <ul class="decision-list">
+                        <li>
+                          <span>Preview before placement.</span>
+                          New objects first appear as a tentative preview, which gives the user a chance to judge the plane before anything is committed to the scene.
+                        </li>
+                        <li>
+                          <span>Treat gestures as interaction states.</span>
+                          Place, move, and resize are separate states. The app does not treat every detected pinch as the same command, which reduces accidental jumps and false placements.
+                        </li>
+                        <li>
+                          <span>Be honest about unstable tracking.</span>
+                          When the scene or hand signal is weak, the object should hold position rather than pretending the transform is reliable. Stability matters more than looking fast.
+                        </li>
+                      </ul>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>What the user sees</h3>
+                      <p>
+                        The main screen is the rear camera feed with a light UI around it. The object enters as a placement preview, then becomes a real scene object once the user commits it and tracking is stable enough to hold it in place.
+                      </p>
+                      <p>
+                        After placement, the user can move or resize the object through hand-based gestures. The interface keeps the status cues small: enough to tell the user whether the app is ready, tracking, or waiting, without covering the scene with controls.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>How the interaction holds together</h3>
+                      <div class="flow-grid flow-grid-3">
+                        <div class="flow-card">
+                          <p class="eyebrow">1</p>
+                          <h4>Read the scene</h4>
+                          <p>
+                            ARCore establishes the plane and the app shows a preview object instead of committing immediately.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">2</p>
+                          <h4>Capture intent</h4>
+                          <p>
+                            Hand tracking turns pinch input into a controlled state so the object responds to intention, not every frame.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">3</p>
+                          <h4>Hold stability</h4>
+                          <p>
+                            Once placed, the object should feel anchored. When tracking weakens, the system favors steadiness over aggressive motion.
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Outcome</h3>
+                      <p>
+                        The move to native changed the project from a proof of concept into a real interaction design problem. It became much clearer how much of AR credibility comes from state handling, gesture thresholds, and restraint rather than visual spectacle.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>What I’d change</h3>
+                      <p>
+                        The next step would be better recovery when tracking degrades. Right now I understand why an object might pause or hold, but a new user needs clearer guidance about what the system is waiting for and how to get back to a stable state.
+                      </p>
+                    </article>
+
+                    <blockquote class="pull-quote">
+                      In AR, a slightly wrong response feels more fake than a slightly delayed one.
+                    </blockquote>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <!-- Physics Engine -->
+            <article class="project-card reveal" data-expandable-project>
+              <div class="project-meta">
+                <p class="eyebrow">03</p>
+                <span class="tag">Simulation design</span>
+              </div>
+              <h3>Physics Engine</h3>
+              <p class="project-summary">
+                An interactive simulation project focused on making motion, collision, and constraint behavior feel believable enough for people to understand what the system is doing.
+              </p>
+              <div class="visual-block visual-physics" aria-hidden="true">
+                <div class="physics-shell">
+                  <div class="physics-toolbar">
+                    <span class="mini-status">Play</span>
+                    <span class="mini-status">Pause</span>
+                    <span class="mini-status">Reset</span>
+                    <span class="mini-status">Collision on</span>
+                  </div>
+                  <div class="physics-stage">
+                    <div class="physics-line physics-line-a"></div>
+                    <div class="physics-line physics-line-b"></div>
+                    <div class="physics-line physics-line-c"></div>
+                    <div class="physics-node physics-node-a"></div>
+                    <div class="physics-node physics-node-b"></div>
+                    <div class="physics-node physics-node-c"></div>
+                    <div class="physics-node physics-node-d"></div>
+                  </div>
+                  <p class="visual-caption">
+                    A simulation stage designed to make abstract rules visible through readable motion.
+                  </p>
+                </div>
+              </div>
+              <button class="project-toggle" type="button" aria-expanded="false">
+                <span>View full case study</span>
+                <span class="project-toggle-icon">↓</span>
+              </button>
+
+              <div class="case-inline" aria-hidden="true">
+                <div class="case-inline-inner">
+                  <header class="case-header">
+                    <p class="eyebrow">Project 03</p>
+                    <h2>Physics Engine</h2>
+                    <p>
+                      An interactive simulation project about turning abstract rules into motion, collision, and response that people can actually read.
+                    </p>
+                  </header>
+
+                  <div class="overview-strip">
+                    <div class="overview-item">
+                      <p class="eyebrow">Role</p>
+                      <p>Simulation design, interaction framing, behavior tuning</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Type</p>
+                      <p>Interactive simulation</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Timeline</p>
+                      <p>Independent build</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Status</p>
+                      <p>Playable simulation with direct manipulation</p>
+                    </div>
+                  </div>
+
+                  <div class="case-body">
+                    <article class="case-section">
+                      <h3>The problem</h3>
+                      <p>
+                        A physics engine can be mathematically interesting and still be hard to understand from the outside. If motion looks unstable, collisions feel arbitrary, or controls are too loose, the user stops reading the scene as a coherent system.
+                      </p>
+                      <p>
+                        The product question was how to make simulated behavior legible. I was not just interested in getting bodies to move. I wanted the user to be able to disturb the system and understand why it responded the way it did.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Who used it</h3>
+                      <p>
+                        The user here is someone exploring behavior through interaction. They might be testing a scene, dragging an object, or comparing two responses after changing an initial condition.
+                      </p>
+                      <p>
+                        That means the simulation needs to feel believable before it feels impressive. Stability, readable motion, and clear control matter more than exposing every possible parameter.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>My role and process</h3>
+                      <p>
+                        I treated the engine as an interface problem as much as an implementation problem. The work sat in choosing how much of the underlying system to expose, how to tune motion so it felt responsive without becoming chaotic, and how to keep the main simulation stage readable.
+                      </p>
+                      <p>
+                        That led to a simple structure: a central stage, a small control bar for play, pause, and reset, and direct interaction with the bodies inside the scene. The engine exists underneath, but the design question is whether the resulting behavior feels legible to a person watching it.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Key design decisions</h3>
+                      <ul class="decision-list">
+                        <li>
+                          <span>Favor believable behavior over maximum responsiveness.</span>
+                          A slightly slower but stable response is easier to trust than motion that reacts instantly but jitters, tunnels, or explodes under collision.
+                        </li>
+                        <li>
+                          <span>Keep the control surface small.</span>
+                          The interface exposes the handful of actions that support understanding the scene, rather than turning the product into a panel of solver parameters.
+                        </li>
+                        <li>
+                          <span>Make interaction teach the rules.</span>
+                          Dragging, releasing, colliding, and resetting are part of the learning loop. The user should understand the behavior by disturbing the system and watching the response.
+                        </li>
+                      </ul>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>What the user sees</h3>
+                      <p>
+                        The main view is a simulation stage with bodies, constraints, and collisions visible through motion rather than debug text. A small control bar lets the user start, pause, reset, and switch between scene states without pulling focus away from the stage.
+                      </p>
+                      <p>
+                        When the user interacts with the scene, the system needs to make the result readable: bodies should settle when expected, impacts should feel proportional, and constraint relationships should be visible through how the objects move together.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>How the simulation is experienced</h3>
+                      <div class="flow-grid flow-grid-3">
+                        <div class="flow-card">
+                          <p class="eyebrow">1</p>
+                          <h4>Set the scene</h4>
+                          <p>
+                            A simple control layer establishes the initial state without crowding the interface with technical tuning.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">2</p>
+                          <h4>Disturb the system</h4>
+                          <p>
+                            The user drags, releases, or collides objects to see how the system responds under changed conditions.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">3</p>
+                          <h4>Read the response</h4>
+                          <p>
+                            The resulting motion needs to communicate cause and effect, not just prove that the solver is running.
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Outcome</h3>
+                      <p>
+                        The value of the project came from treating simulated behavior as an experience to be shaped. Once the goal became legibility rather than feature count, decisions about controls, motion, and scene design became much clearer.
+                      </p>
+                    </article>
+
+                                        <article class="case-section">
+                      <h3>What I’d change</h3>
+                      <p>
+                        I would add better comparison tools between runs. Right now the user can feel that one initial condition behaves differently from another, but a stronger product would make those differences easier to inspect without cluttering the stage.
+                      </p>
+                    </article>
+
+                    <blockquote class="pull-quote">
+                      The simulation becomes useful when people can see cause and effect, not just motion.
+                    </blockquote>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <!-- MedBot -->
+            <article class="project-card reveal" data-expandable-project>
+              <div class="project-meta">
+                <p class="eyebrow">04</p>
+                <span class="tag">Safety-aware guidance</span>
+              </div>
+              <h3>MedBot</h3>
+              <p class="project-summary">
+                A guided health recommendation flow that captures profile and contraindications before showing structured guidance, so the product feels supportive without skipping the safety checks.
+              </p>
+              <div class="visual-block visual-chat" aria-hidden="true">
+                <div class="flow-rail">
+                  <span class="flow-step">1 Profile</span>
+                  <span class="flow-step">2 Conditions</span>
+                  <span class="flow-step">3 Safety check</span>
+                  <span class="flow-step">4 Guidance</span>
+                </div>
+                <div class="medical-flow">
+                  <div class="intake-panel">
+                    <p class="panel-label">Step 1</p>
+                    <h4>Profile</h4>
+                    <div class="select-card">Managing a condition</div>
+                    <p class="panel-label">Step 2</p>
+                    <h4>Safety checks</h4>
+                    <div class="check-item check-item-active">
+                      <span class="check-box"></span>
+                      <span>High blood pressure</span>
+                    </div>
+                    <div class="check-item">
+                      <span class="check-box"></span>
+                      <span>Pregnant</span>
+                    </div>
+                  </div>
+                  <div class="recommendation-panel">
+                    <div class="chat-pill">
+                      <span class="status-dot"></span>
+                      <span>Safe mode active</span>
+                    </div>
+                    <div class="recommendation-card">
+                      <div class="recommendation-top">
+                        <h4>Low-sodium meal planning</h4>
+                        <span class="mini-tag mini-tag-success">Applies to your profile</span>
+                      </div>
+                      <p>Useful for managing blood pressure without changing too much at once.</p>
+                    </div>
+                    <div class="recommendation-card">
+                      <div class="recommendation-top">
+                        <h4>Daily symptom log</h4>
+                        <span class="mini-tag mini-tag-success">Applies to your profile</span>
+                      </div>
+                      <p>Helps connect meals, symptoms, and medication timing before making changes.</p>
+                    </div>
+                    <div class="recommendation-note">
+                      <p class="panel-label">Not recommended if</p>
+                      <p>Symptoms include fainting, chest pain, or sudden worsening.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="project-toggle" type="button" aria-expanded="false">
+                <span>View full case study</span>
+                <span class="project-toggle-icon">↓</span>
+              </button>
+
+              <div class="case-inline" aria-hidden="true">
+                <div class="case-inline-inner">
+                  <header class="case-header">
+                    <p class="eyebrow">Project 04</p>
+                    <h2>MedBot</h2>
+                    <p>
+                      A safer health guidance flow built around intake first, recommendation second, and structured outputs instead of a wall of conversational text.
+                    </p>
+                  </header>
+
+                  <div class="overview-strip">
+                    <div class="overview-item">
+                      <p class="eyebrow">Role</p>
+                      <p>Conversation design, safety framing, structured output design</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Type</p>
+                      <p>Guided health recommendation product</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Timeline</p>
+                      <p>Independent concept</p>
+                    </div>
+                    <div class="overview-item">
+                      <p class="eyebrow">Status</p>
+                      <p>Working flow with safety filtering and recommendation cards</p>
+                    </div>
+                  </div>
+
+                  <div class="case-body">
+                    <article class="case-section">
+                      <h3>The problem</h3>
+                      <p>
+                        Health information online often fails in one of two ways: it is generic enough to be useless, or specific enough to sound overconfident. The design challenge here was to make guidance feel usable without acting as if the product could skip context.
+                      </p>
+                      <p>
+                        I did not want a freeform chatbot that guessed its way into a recommendation. The product needed to collect the right safety constraints first and make them visible enough that the user understood why certain advice appeared and other advice did not.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Who used it</h3>
+                      <p>
+                        The user is someone dealing with symptoms, managing a condition, or trying to make a health-related decision without medical training. They may be tired, worried, or short on attention.
+                      </p>
+                      <p>
+                        That makes flow design central. The product has to reduce overload, ask only for the information it needs, and avoid making the user read a long cautionary paragraph before anything useful appears.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>My role and process</h3>
+                      <p>
+                        I framed this as a guided product flow rather than a generic conversational interface. The core design work was mapping the intake sequence, the contraindication logic, and the output structure so the experience stayed useful and constrained at the same time.
+                      </p>
+                      <p>
+                        The flow became four steps: choose a profile, capture relevant conditions, apply safety filtering, then show structured recommendation cards. That ordering keeps the product from offering anything before it has enough context to justify it.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>How the flow works</h3>
+                      <div class="flow-grid">
+                        <div class="flow-card">
+                          <p class="eyebrow">Step 1</p>
+                          <h4>Profile selection</h4>
+                          <p>
+                            The user chooses a context such as general wellness or managing a condition before the system starts reasoning.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">Step 2</p>
+                          <h4>Condition capture</h4>
+                          <p>
+                            Contraindications such as high blood pressure are collected and become active filters behind the scenes.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">Step 3</p>
+                          <h4>Safety filtering</h4>
+                          <p>
+                            Structured recommendation logic removes advice that does not fit the profile instead of showing it and correcting later.
+                          </p>
+                        </div>
+                        <div class="flow-card">
+                          <p class="eyebrow">Step 4</p>
+                          <h4>Structured output</h4>
+                          <p>
+                            The user sees cards with what to do, why it applies, and what would make it inappropriate.
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Key design decisions</h3>
+                      <ul class="decision-list">
+                        <li>
+                          <span>Do not recommend before context exists.</span>
+                          Profile and contraindication capture come first, which keeps the product from making premature suggestions and gives the guidance a clear basis.
+                        </li>
+                        <li>
+                          <span>Make safe mode visible but quiet.</span>
+                          The interface shows that safety filtering is active, but it does not turn the whole product into a warning label.
+                        </li>
+                        <li>
+                          <span>Keep the output structured.</span>
+                          Recommendation cards are easier to scan than a paragraph. They also give the product space to show why the guidance applies and when it should not be used.
+                        </li>
+                      </ul>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>What the user sees</h3>
+                      <p>
+                        The experience starts with a simple intake, not an empty text box. Once the user has chosen a profile and flagged relevant conditions, the product shows filtered recommendation cards with a short explanation and a small note about when not to use them.
+                      </p>
+                      <p>
+                        The visible interface stays light: a small safe-mode badge, clear section labels, and detail on request rather than all at once. The aim is to make the product feel supportive without pretending it can safely answer everything in one sentence.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>Outcome</h3>
+                      <p>
+                        Treating the product as a guided flow made it much more credible. The design stopped sounding like a chatbot pitch and started behaving like a constrained recommendation product with a clear safety model.
+                      </p>
+                    </article>
+
+                    <article class="case-section">
+                      <h3>What I’d change</h3>
+                      <p>
+                        The interaction is still mostly linear. A stronger version would let people add context halfway through, revise earlier answers, and move back through the intake without feeling like they are restarting the whole conversation.
+                      </p>
+                    </article>
+
+                    <blockquote class="pull-quote">
+                      Guidance becomes more trustworthy when the user can see both why it fits and what might rule it out.
+                    </blockquote>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="experiments">
+        <div class="shell">
+          <div class="section-heading reveal">
+            <p class="eyebrow">Additional experiments</p>
+            <h2>Supporting projects around monitoring, review, and simulation.</h2>
+          </div>
+
+          <div class="secondary-grid">
+            <article class="secondary-card reveal">
+              <div class="project-meta">
+                <p class="eyebrow">RunForge</p>
+                <span class="tag">Operational clarity</span>
+              </div>
+              <h3>RunForge</h3>
+              <p>
+                A self-hosted batch execution platform where the main product work sat in job lifecycle clarity, live status and log visibility, retry history, and keeping background execution inspectable instead of opaque.
+              </p>
+            </article>
+
+            <article class="secondary-card reveal">
+              <div class="project-meta">
+                <p class="eyebrow">Simulation</p>
+                <span class="tag">Chaotic systems</span>
+              </div>
+              <h3>3-body problem simulation</h3>
+              <p>
+                A visualization experiment about making chaotic behavior readable, especially how small changes in initial conditions can produce very different motion over time.
+              </p>
+            </article>
+
+            <article class="secondary-card reveal">
+              <div class="project-meta">
+                <p class="eyebrow">Monitoring</p>
+                <span class="tag">Risk signals</span>
+              </div>
+              <h3>Designing an Early-Warning Product for Stablecoin Risk</h3>
+              <p>
+                An early-warning monitoring surface built around probability, confidence, recent trend, and threshold-based alerts so unstable market signals stay interpretable under pressure.
+              </p>
+            </article>
+
+            <article class="secondary-card reveal">
+              <div class="project-meta">
+                <p class="eyebrow">Review</p>
+                <span class="tag">Explainable filtering</span>
+              </div>
+              <h3>Designing Clarity for Complex Blockchain Transaction Data</h3>
+              <p>
+                A review concept where noisy wallet activity is classified, filtered rows stay visible with reasons attached, and analysts get a cleaner view without losing trust in what was removed.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="principles">
+        <div class="shell">
+          <div class="section-heading reveal">
+            <p class="eyebrow">Reflection</p>
+            <h2>How I work through design decisions.</h2>
+          </div>
+
+          <div class="principles-grid">
+            <article class="principle-card reveal">
+              <p class="eyebrow">1</p>
+              <h3>Show the right thing, not everything</h3>
+              <p>
+                On the risk product, that meant putting probability, confidence, and trend ahead of raw inputs. On the blockchain tool, it meant moving noisy transaction logs out of the main view without deleting them.
+              </p>
+            </article>
+
+            <article class="principle-card reveal">
+              <p class="eyebrow">2</p>
+              <h3>Trust is earned through honesty about uncertainty</h3>
+              <p>
+                I try to show where the product might be wrong instead of hiding it. That is why the depeg tool shows confidence next to the score, and why the health tool pairs each recommendation with a note on when not to use it.
+              </p>
+            </article>
+
+            <article class="principle-card reveal">
+              <p class="eyebrow">3</p>
+              <h3>Constraints are better than blank canvases</h3>
+              <p>
+                The strongest design decisions in these projects came from hard limits: noisy market signals, safety rules, and messy wallet activity. Constraints made the interface more specific, not less ambitious.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="contact-section" id="contact">
+      <div class="shell contact-inner">
+        <p class="eyebrow">Contact</p>
+        <h2>Tanay Veeragandham</h2>
+        <div class="contact-links">
+          <a href="mailto:tanayv77@gmail.com">tanayv77@gmail.com</a>
+          <a href="tel:+447533836484">+44 7533836484</a>
+          <a href="https://www.linkedin.com/in/tanay-veeragandham/" target="_blank" rel="noreferrer">LinkedIn</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const revealItems = Array.from(document.querySelectorAll(".reveal"));
+
+      revealItems.forEach((item, index) => {
+        const parentGroup = item.closest("[data-reveal-group]");
+        if (parentGroup) {
+          const siblings = Array.from(parentGroup.querySelectorAll(".reveal"));
+          const siblingIndex = siblings.indexOf(item);
+          item.style.transitionDelay = `${siblingIndex * 100}ms`;
+        } else {
+          item.style.transitionDelay = `${(index % 4) * 100}ms`;
+        }
+      });
+
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.12,
+            rootMargin: "0px 0px -40px 0px",
+          }
+        );
+
+        revealItems.forEach((item) => observer.observe(item));
+      } else {
+        revealItems.forEach((item) => item.classList.add("is-visible"));
+      }
+
+      const expandableProjects = Array.from(document.querySelectorAll("[data-expandable-project]"));
+
+      function closeProject(card) {
+        const toggle = card.querySelector(".project-toggle");
+        const panel = card.querySelector(".case-inline");
+        if (!toggle || !panel) return;
+
+        panel.style.maxHeight = "0px";
+        panel.classList.remove("is-open");
+        card.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+        panel.setAttribute("aria-hidden", "true");
+      }
+
+      function openProject(card) {
+        const toggle = card.querySelector(".project-toggle");
+        const panel = card.querySelector(".case-inline");
+        if (!toggle || !panel) return;
+
+        panel.classList.add("is-open");
+        card.classList.add("is-open");
+        toggle.setAttribute("aria-expanded", "true");
+        panel.setAttribute("aria-hidden", "false");
+        panel.style.maxHeight = `${panel.scrollHeight}px`;
+      }
+
+      expandableProjects.forEach((card) => {
+        const toggle = card.querySelector(".project-toggle");
+        const panel = card.querySelector(".case-inline");
+        if (!toggle || !panel) return;
+
+        toggle.addEventListener("click", () => {
+          const isOpen = card.classList.contains("is-open");
+
+          expandableProjects.forEach((otherCard) => {
+            if (otherCard !== card) closeProject(otherCard);
+          });
+
+          if (isOpen) {
+            closeProject(card);
+          } else {
+            openProject(card);
+            setTimeout(() => {
+              card.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 120);
+          }
+        });
+
+        if ("ResizeObserver" in window) {
+          const resizeObserver = new ResizeObserver(() => {
+            if (card.classList.contains("is-open")) {
+              panel.style.maxHeight = `${panel.scrollHeight}px`;
+            }
+          });
+          resizeObserver.observe(panel);
+        }
+      });
+    </script>
+  </body>
+</html>
