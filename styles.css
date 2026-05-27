@@ -212,35 +212,24 @@ h4 {
 }
 
 .nav-links a:hover,
-.nav-links a:focus-visible,
 .nav-links a.is-active {
   color: var(--ink);
   border-color: var(--accent-dark);
 }
 
+.nav-links a:focus-visible {
+  color: var(--ink);
+  border-color: transparent;
+}
+
 .hero {
   position: relative;
   overflow: hidden;
-  padding: 114px 0 78px;
-}
-
-.hero::before {
-  content: "";
-  position: absolute;
-  top: 40px;
-  right: max(24px, calc((100vw - 1120px) / 2));
-  width: min(28vw, 320px);
-  height: calc(100% - 80px);
-  border: 1px solid rgba(199, 167, 131, 0.24);
-  border-radius: 36px;
-  background:
-    linear-gradient(180deg, rgba(239, 224, 202, 0.62), rgba(255, 250, 242, 0.18)),
-    radial-gradient(circle at top right, rgba(194, 138, 95, 0.12), transparent 36%);
-  pointer-events: none;
+  padding: 110px 0 82px;
 }
 
 .hero-layout {
-  max-width: 760px;
+  max-width: 860px;
   position: relative;
   z-index: 1;
 }
@@ -248,7 +237,7 @@ h4 {
 .hero-copy {
   min-width: 0;
   display: grid;
-  gap: 22px;
+  gap: 20px;
 }
 
 .hero-lede {
@@ -290,6 +279,7 @@ h4 {
   gap: 10px;
   width: fit-content;
   max-width: 100%;
+  margin-top: 2px;
   padding: 12px;
   border: 1px solid rgba(36, 27, 21, 0.08);
   border-radius: 18px;
@@ -919,11 +909,6 @@ h4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .hero::before {
-    right: 24px;
-    width: min(30vw, 280px);
-  }
-
   .secondary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -954,10 +939,6 @@ h4 {
 
   .hero {
     padding-top: 84px;
-  }
-
-  .hero::before {
-    display: none;
   }
 
   .skills-grid,

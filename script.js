@@ -1,19 +1,5 @@
 const revealItems = Array.from(document.querySelectorAll(".reveal"));
-const navLinks = Array.from(document.querySelectorAll("[data-nav]"));
-const sections = Array.from(document.querySelectorAll("main section[id]"));
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-function setActiveNav(id) {
-  navLinks.forEach((link) => {
-    const isActive = link.getAttribute("href") === `#${id}`;
-    link.classList.toggle("is-active", isActive);
-    if (isActive) {
-      link.setAttribute("aria-current", "true");
-    } else {
-      link.removeAttribute("aria-current");
-    }
-  });
-}
 
 revealItems.forEach((item, index) => {
   const parentGroup = item.closest("[data-reveal-group]");
@@ -47,24 +33,4 @@ if (prefersReducedMotion.matches) {
   );
 
   revealItems.forEach((item) => revealObserver.observe(item));
-}
-
-if (sections.length && navLinks.length) {
-  const sectionObserver = new IntersectionObserver(
-    (entries) => {
-      const visibleSections = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-
-      if (visibleSections.length) {
-        setActiveNav(visibleSections[0].target.id);
-      }
-    },
-    {
-      rootMargin: "-30% 0px -55% 0px",
-      threshold: [0.2, 0.45, 0.7],
-    }
-  );
-
-  sections.forEach((section) => sectionObserver.observe(section));
 }
