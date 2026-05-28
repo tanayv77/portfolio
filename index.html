@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div id="cur" aria-hidden="true"></div>
+    <div id="cur-ring" aria-hidden="true"></div>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="nav-wrap">
@@ -36,6 +38,7 @@
       <section class="hero" id="top">
         <div class="shell hero-layout">
           <div class="hero-copy reveal">
+            <p class="eyebrow hero-kicker">Software engineer</p>
             <h1 aria-label="Tanay Veeragandham">
               <span>Tanay</span>
               <span>Veeragandham</span>
@@ -47,76 +50,154 @@
             </p>
             <p class="hero-body">
               I build software around messy real-world systems: external APIs,
-              simulation runtimes, research pipelines, background workers, and
-              the interfaces that make them usable.
+              background workers, reproducible research pipelines, and the
+              interfaces that make them usable.
             </p>
             <div class="hero-links">
               <a href="#work">View work</a>
               <a href="#contact">Contact</a>
             </div>
-            <div class="hero-index" aria-label="Featured project index">
-              <span>01 MotorProof</span>
-              <span>02 RunForge</span>
-              <span>03 NeuroPath</span>
-              <span>04 Kerr / JP</span>
+            <div class="hero-index-wrap">
+              <p class="eyebrow">Project index</p>
+              <div class="hero-index" aria-label="Featured project index">
+                <a href="#motorproof">01 MotorProof</a>
+                <a href="#runforge">02 RunForge</a>
+                <a href="#neuropath">03 NeuroPath</a>
+                <a href="#kerr-jp">04 Kerr / JP</a>
+              </div>
             </div>
           </div>
+
+          <aside class="hero-trace reveal" aria-label="Mainframe trace panel">
+            <div class="trace-panel" data-trace-panel>
+              <div class="trace-panel-head">
+                <p class="card-kicker">Mainframe trace panel</p>
+                <p class="trace-panel-copy">
+                  API boundaries, job lifecycles, simulation state, and
+                  research artefacts.
+                </p>
+              </div>
+
+              <div class="trace-stage">
+                <svg
+                  class="trace-svg"
+                  viewBox="0 0 620 430"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    class="trace-lane trace-lane--soft"
+                    d="M 4 88 C 98 88 138 112 218 112 S 338 74 424 124 S 536 150 616 150"
+                  />
+                  <path
+                    class="trace-lane trace-lane--soft"
+                    d="M 4 140 C 112 140 146 166 226 166 S 344 196 422 196 S 538 176 616 176"
+                  />
+                  <path
+                    class="trace-lane trace-lane--soft"
+                    d="M 4 204 C 110 204 164 214 246 214 S 362 214 434 214 S 548 202 616 202"
+                  />
+                  <path
+                    class="trace-lane trace-lane--soft"
+                    d="M 4 274 C 110 274 150 256 236 256 S 350 278 430 278 S 538 296 616 296"
+                  />
+                  <path
+                    class="trace-lane trace-lane--soft"
+                    d="M 4 338 C 92 338 150 312 238 312 S 364 342 432 342 S 542 354 616 354"
+                  />
+
+                  <path
+                    class="trace-lane trace-lane--accent"
+                    d="M 56 112 C 148 112 182 118 258 146 S 366 228 436 228 S 544 202 608 202"
+                  />
+                  <path
+                    class="trace-lane trace-lane--accent"
+                    d="M 78 318 C 168 318 214 292 284 264 S 390 214 456 214 S 550 242 608 242"
+                  />
+                  <path
+                    class="trace-lane trace-lane--accent"
+                    d="M 116 84 C 208 84 244 120 306 164 S 390 214 466 214 S 554 164 616 118"
+                  />
+
+                  <path
+                    class="trace-pulse trace-pulse--one"
+                    d="M 4 204 C 110 204 164 214 246 214 S 362 214 434 214 S 548 202 616 202"
+                  />
+                  <path
+                    class="trace-pulse trace-pulse--two"
+                    d="M 56 112 C 148 112 182 118 258 146 S 366 228 436 228 S 544 202 608 202"
+                  />
+                  <path
+                    class="trace-pulse trace-pulse--three"
+                    d="M 78 318 C 168 318 214 292 284 264 S 390 214 456 214 S 550 242 608 242"
+                  />
+                  <path
+                    class="trace-pulse trace-pulse--four"
+                    d="M 116 84 C 208 84 244 120 306 164 S 390 214 466 214 S 554 164 616 118"
+                  />
+
+                  <path
+                    class="trace-branch"
+                    d="M 378 214 C 416 184 450 160 478 126"
+                  />
+                  <path
+                    class="trace-branch"
+                    d="M 388 214 C 438 214 476 214 520 214"
+                  />
+                  <path
+                    class="trace-branch"
+                    d="M 378 220 C 420 256 450 286 484 318"
+                  />
+                  <path
+                    class="trace-branch"
+                    d="M 350 232 C 330 264 304 294 278 330"
+                  />
+                </svg>
+
+                <span class="trace-label trace-label--api">API</span>
+                <span class="trace-label trace-label--jobs">JOBS</span>
+                <span class="trace-label trace-label--sim">SIM</span>
+                <span class="trace-label trace-label--research">RESEARCH</span>
+                <span class="trace-core" aria-hidden="true"></span>
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
 
-      <section class="section section-tight" id="skills">
-        <div class="shell">
-          <div class="section-head reveal">
-            <p class="eyebrow">Skills</p>
-            <h2>Technical stack and working style</h2>
+      <section class="proof-strip" id="skills">
+        <div class="shell proof-grid" data-reveal-group>
+          <article class="proof-card reveal">
+            <p class="card-kicker">API boundaries</p>
             <p>
-              The common thread here is not one framework. It is handling
-              state, external systems, and verification without hand-waving the
-              messy parts away.
+              Secure provider integrations, backend-owned credentials, and
+              contract-shaped outputs.
             </p>
-          </div>
+          </article>
 
-          <div class="skills-grid" data-reveal-group>
-            <article class="skill-card reveal">
-              <p class="card-kicker">Backend and data</p>
-              <h3>APIs, persistence, job control</h3>
-              <div class="pill-list">
-                <span class="pill">Python</span>
-                <span class="pill">FastAPI</span>
-                <span class="pill">PostgreSQL</span>
-                <span class="pill">SQL</span>
-                <span class="pill">Docker</span>
-                <span class="pill">REST APIs</span>
-                <span class="pill">WebSockets</span>
-              </div>
-            </article>
+          <article class="proof-card reveal">
+            <p class="card-kicker">Job lifecycles</p>
+            <p>
+              Queues, retries, worker state transitions, and logs that stay
+              inspectable under failure.
+            </p>
+          </article>
 
-            <article class="skill-card reveal">
-              <p class="card-kicker">Simulation and research</p>
-              <h3>Determinism, diagnostics, pipelines</h3>
-              <div class="pill-list">
-                <span class="pill">Simulation</span>
-                <span class="pill">Data pipelines</span>
-                <span class="pill">Testing</span>
-                <span class="pill">Validation</span>
-                <span class="pill">Reproducibility</span>
-                <span class="pill">CLI workflows</span>
-              </div>
-            </article>
+          <article class="proof-card reveal">
+            <p class="card-kicker">Deterministic simulation</p>
+            <p>
+              Save and resume state, reproducible runs, and validation around
+              world and graph behavior.
+            </p>
+          </article>
 
-            <article class="skill-card reveal">
-              <p class="card-kicker">Client and tooling</p>
-              <h3>Interfaces that expose the system</h3>
-              <div class="pill-list">
-                <span class="pill">Android / Kotlin</span>
-                <span class="pill">Jetpack Compose</span>
-                <span class="pill">React</span>
-                <span class="pill">TypeScript</span>
-                <span class="pill">C++</span>
-                <span class="pill">Git</span>
-              </div>
-            </article>
-          </div>
+          <article class="proof-card reveal">
+            <p class="card-kicker">Research artefacts</p>
+            <p>
+              CSV and JSON outputs, audit trails, and result scripts that tie
+              claims back to reproducible evidence.
+            </p>
+          </article>
         </div>
       </section>
 
@@ -133,7 +214,7 @@
           </div>
 
           <div class="feature-list">
-            <article class="feature-card feature-card--motorproof reveal">
+            <article class="feature-card feature-card--motorproof reveal" id="motorproof">
               <div class="feature-top">
                 <div class="feature-heading">
                   <div class="feature-labels">
@@ -243,7 +324,7 @@
               </details>
             </article>
 
-            <article class="feature-card feature-card--runforge reveal">
+            <article class="feature-card feature-card--runforge reveal" id="runforge">
               <div class="feature-top">
                 <div class="feature-heading">
                   <div class="feature-labels">
@@ -356,7 +437,7 @@
               </details>
             </article>
 
-            <article class="feature-card feature-card--neuropath reveal">
+            <article class="feature-card feature-card--neuropath reveal" id="neuropath">
               <div class="feature-top">
                 <div class="feature-heading">
                   <div class="feature-labels">
@@ -474,7 +555,7 @@
               </details>
             </article>
 
-            <article class="feature-card feature-card--kerr reveal">
+            <article class="feature-card feature-card--kerr reveal" id="kerr-jp">
               <div class="feature-top">
                 <div class="feature-heading">
                   <div class="feature-labels">
