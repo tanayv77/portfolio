@@ -9,15 +9,6 @@ const modeAlias = {
   supplement: "supplement",
 };
 
-const visualNotes = {
-  neuropath: "Particles gather into evidence-backed connectome paths around the cursor.",
-  kerr: "A physically inspired browser visual, not a live GR ray tracer.",
-  motorproof:
-    "Requests slow at the backend boundary, split into provider lanes, then rejoin as a buyer brief.",
-  supplement:
-    "Guidance symbols align into safety lanes; optional products stay visually separate.",
-};
-
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -272,12 +263,43 @@ class RibbonController {
     if (!this.root) {
       return;
     }
+    this.prepareSymbols();
     this.root.addEventListener("pointerenter", () => {
       if (!this.motion.reduced) {
         this.root.classList.add("is-warm");
       }
     });
     this.root.addEventListener("pointerleave", () => this.root.classList.remove("is-warm"));
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        this.root.classList.add("is-ready");
+      });
+    });
+  }
+
+  prepareSymbols() {
+    const symbols = Array.from(this.root.querySelectorAll(".ribbon-symbol"));
+    symbols.forEach((symbol, index) => {
+      const primary = symbol.querySelector("svg");
+      if (!primary || primary.classList.contains("ribbon-primary")) {
+        return;
+      }
+      primary.classList.add("ribbon-primary");
+      const ghost = primary.cloneNode(true);
+      const echo = primary.cloneNode(true);
+      ghost.classList.remove("ribbon-primary");
+      echo.classList.remove("ribbon-primary");
+      ghost.classList.add("ribbon-ghost");
+      echo.classList.add("ribbon-echo");
+      ghost.setAttribute("aria-hidden", "true");
+      echo.setAttribute("aria-hidden", "true");
+      symbol.prepend(echo);
+      symbol.prepend(ghost);
+      const direction = index % 2 === 0 ? 1 : -1;
+      symbol.style.setProperty("--ghost-x", `${direction * (11 + (index % 4) * 3)}px`);
+      symbol.style.setProperty("--ghost-y", `${-10 + (index % 3) * 5}px`);
+      symbol.style.setProperty("--phase", symbol.style.getPropertyValue("--phase") || `${index * 0.34}s`);
+    });
   }
 }
 
@@ -613,9 +635,8 @@ class HeroFieldController {
 }
 
 class ProjectVisualController {
-  constructor(canvas, noteElement, motion) {
+  constructor(canvas, motion) {
     this.canvas = canvas;
-    this.noteElement = noteElement;
     this.panel = canvas?.closest("[data-project-visual-panel]") || null;
     this.ctx = null;
     this.motion = motion;
@@ -627,7 +648,8 @@ class ProjectVisualController {
     this.inView = false;
     this.active = false;
     this.scene = null;
-    this.pointer = { x: 0, y: 0, active: false, strength: 0 };
+    this.lastTime = 0;
+    this.pointer = { x: 0, y: 0, prevX: 0, prevY: 0, vx: 1, vy: 0, active: false, strength: 0 };
 
     this.draw = this.draw.bind(this);
     this.resize = this.resize.bind(this);
@@ -646,8 +668,29 @@ class ProjectVisualController {
   }
 
   setupEvents() {
+    const updatePointer = (event, rect) => {
+      const nextX = event.clientX - rect.left;
+      const nextY = event.clientY - rect.top;
+      const moveX = nextX - this.pointer.x;
+      const moveY = nextY - this.pointer.y;
+      this.pointer.vx = lerp(this.pointer.vx, moveX, 0.48);
+      this.pointer.vy = lerp(this.pointer.vy, moveY, 0.48);
+      this.pointer.prevX = this.pointer.x;
+      this.pointer.prevY = this.pointer.y;
+      this.pointer.x = nextX;
+      this.pointer.y = nextY;
+      this.pointer.active = true;
+    };
+
     this.canvas.addEventListener("pointerenter", (event) => {
       if (event.pointerType !== "touch" && !this.motion.reduced) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.pointer.x = event.clientX - rect.left;
+        this.pointer.y = event.clientY - rect.top;
+        this.pointer.prevX = this.pointer.x;
+        this.pointer.prevY = this.pointer.y;
+        this.pointer.vx = 1;
+        this.pointer.vy = 0;
         this.pointer.active = true;
       }
     });
@@ -656,13 +699,29 @@ class ProjectVisualController {
         return;
       }
       const rect = this.canvas.getBoundingClientRect();
-      this.pointer.x = event.clientX - rect.left;
-      this.pointer.y = event.clientY - rect.top;
-      this.pointer.active = true;
+      updatePointer(event, rect);
     });
     this.canvas.addEventListener("pointerleave", () => {
       this.pointer.active = false;
     });
+    const handleWindowMove = (event) => {
+      if (event.pointerType === "touch" || this.motion.reduced || !this.active) {
+        return;
+      }
+      const rect = this.canvas.getBoundingClientRect();
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (inside) {
+        updatePointer(event, rect);
+      } else if (this.pointer.active) {
+        this.pointer.active = false;
+      }
+    };
+    window.addEventListener("pointermove", handleWindowMove, { passive: true });
+    window.addEventListener("mousemove", handleWindowMove, { passive: true });
   }
 
   observe() {
@@ -674,17 +733,15 @@ class ProjectVisualController {
         this.inView = entries.some((entry) => entry.isIntersecting);
         this.syncLoop();
       },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     );
     observer.observe(this.panel);
   }
 
-  setMode(mode, note = "") {
+  setMode(mode) {
     this.mode = normalizeMode(mode);
-    if (this.noteElement) {
-      this.noteElement.textContent = note || visualNotes[this.mode] || "";
-    }
     this.active = true;
+    this.lastTime = 0;
     this.resize();
     this.syncLoop();
   }
@@ -702,7 +759,7 @@ class ProjectVisualController {
     const rect = (this.panel || this.canvas).getBoundingClientRect();
     this.width = Math.max(1, Math.round(rect.width));
     this.height = Math.max(1, Math.round(rect.height));
-    this.dpr = clamp(window.devicePixelRatio || 1, 1, 1.85);
+    this.dpr = clamp(window.devicePixelRatio || 1, 1, 1.7);
     this.canvas.width = Math.round(this.width * this.dpr);
     this.canvas.height = Math.round(this.height * this.dpr);
     this.canvas.style.width = `${this.width}px`;
@@ -714,60 +771,411 @@ class ProjectVisualController {
 
   buildScene() {
     const rand = mulberry32(hashSeed(`${this.mode}-${this.width}-${this.height}`));
-    if (this.mode === "motorproof") {
-      return {
-        packets: Array.from({ length: 22 }, (_, index) => ({
-          progress: rand(),
-          lane: index % 4,
-          speed: 0.045 + rand() * 0.035,
+    if (this.mode === "kerr") {
+      const rayCount = this.width < 520 ? 24 : 48;
+      const rays = Array.from({ length: rayCount }, (_, index) => {
+        const ray = {
+          lane: index / Math.max(rayCount - 1, 1),
+          tone: index % 5,
+          trail: [],
+          captured: false,
+          captureAge: 0,
           phase: rand() * Math.PI * 2,
-          kind: rand() > 0.72 ? "car" : "packet",
+        };
+        this.spawnKerrRay(ray, rand, true);
+        return ray;
+      });
+      return { rays, rand };
+    }
+    if (this.mode === "motorproof") {
+      const lanes = this.width < 520 ? 4 : 5;
+      return {
+        lanes,
+        vehicles: Array.from({ length: this.width < 520 ? 22 : 42 }, (_, index) => ({
+          lane: index % lanes,
+          progress: rand(),
+          speed: 0.14 + rand() * 0.045,
+          targetSpeed: 1,
+          length: 15 + rand() * 10,
+          tone: index % 4,
+          phase: rand() * Math.PI * 2,
+          gapPush: 0,
         })),
       };
     }
     if (this.mode === "supplement") {
+      const types = ["capsule", "tablet", "bottle", "doc", "shield", "warning", "check", "lab", "product", "profile"];
       return {
-        items: Array.from({ length: 24 }, (_, index) => ({
-          x: rand(),
-          y: rand(),
-          lane: index % 3,
-          progress: rand(),
+        lastSpawn: 0,
+        cursorBurst: 0,
+        symbols: [],
+        idle: Array.from({ length: this.width < 520 ? 14 : 22 }, (_, index) => ({
+          x: 0.12 + rand() * 0.76,
+          y: 0.18 + rand() * 0.62,
           phase: rand() * Math.PI * 2,
-          type: ["capsule", "doc", "shield", "warning", "lab", "product"][index % 6],
-          speed: 0.03 + rand() * 0.025,
+          type: types[index % types.length],
+          size: 0.66 + rand() * 0.3,
+          drift: 0.6 + rand() * 0.7,
         })),
       };
     }
-    if (this.mode === "kerr") {
-      return {
-        rays: Array.from({ length: 13 }, (_, index) => ({
-          y: (index + 1) / 14,
-          phase: rand() * Math.PI * 2,
-          tone: index % 3,
-        })),
-        cells: Array.from({ length: 26 }, (_, index) => ({
-          x: 0.6 + rand() * 0.28,
-          y: 0.38 + rand() * 0.34,
-          size: 0.035 / (1 + (index % 3)),
-          phase: rand() * Math.PI * 2,
-        })),
-      };
-    }
+    return this.buildNeuroPathScene(rand);
+  }
+
+  buildNeuroPathScene(rand) {
+    const compact = this.width < 520;
+    const layout = compact
+      ? [
+          [0.24, 0.54, -0.08, 0.95],
+          [0.52, 0.43, 0.06, 1.03],
+          [0.79, 0.55, -0.03, 0.94],
+        ]
+      : [
+          [0.24, 0.54, -0.08, 1],
+          [0.52, 0.42, 0.06, 1.08],
+          [0.78, 0.55, -0.03, 0.98],
+        ];
+    const neurons = layout.map(([x, y, angle, scale], index) => (
+      this.buildNeuroPathNeuron(
+        rand,
+        clamp(x * this.width, 34, this.width - 34),
+        clamp(y * this.height, 42, this.height - 42),
+        angle,
+        scale,
+        index
+      )
+    ));
+    const connectionPairs = compact
+      ? [[0, 1], [1, 2]]
+      : [[0, 1], [1, 2]];
+    const connections = connectionPairs.map(([from, to], index) => (
+      this.buildNeuroPathConnection(rand, neurons[from], neurons[to], from, to, index)
+    ));
     return {
-      nodes: Array.from({ length: 34 }, (_, index) => ({
-        x: 0.15 + rand() * 0.74,
-        y: 0.14 + rand() * 0.68,
-        size: 2.4 + rand() * 4.4,
-        phase: rand() * Math.PI * 2,
-        validated: index % 4 !== 0,
-      })),
-      dust: Array.from({ length: 130 }, () => ({
+      neurons,
+      connections,
+      dynamicNeurons: [],
+      dynamicConnections: [],
+      relay: Array.from({ length: neurons.length }, () => 0),
+      lastSpawnTime: -20,
+      lastSpawnX: -999,
+      lastSpawnY: -999,
+      dust: Array.from({ length: compact ? 18 : 28 }, () => ({
         x: rand(),
         y: rand(),
         phase: rand() * Math.PI * 2,
-        size: 0.7 + rand() * 1.5,
+        size: 0.42 + rand() * 0.82,
+        tint: rand() > 0.9 ? "cool" : rand() > 0.62 ? "gold" : "copper",
       })),
     };
+  }
+
+  buildNeuroPathNeuron(rand, x, y, axonAngle, scale, index, profile = "static") {
+    const dynamicProfile = profile === "dynamic";
+    const size = (dynamicProfile ? 9 + rand() * 1.05 : 8.7 + rand() * 1.7) * scale;
+    const compact = this.width < 520;
+    const dendriteCount = dynamicProfile ? (compact ? 3 : 4) : (compact ? 5 : 7);
+    const dendrites = Array.from({ length: dendriteCount }, (_, branchIndex) => {
+      const fan = dendriteCount > 1 ? (branchIndex / (dendriteCount - 1) - 0.5) : 0;
+      const fanSpread = dynamicProfile ? Math.PI * 0.92 : Math.PI * 1.82;
+      const angle = axonAngle + Math.PI + fan * fanSpread + (rand() - 0.5) * (dynamicProfile ? 0.09 : 0.28);
+      const length = (dynamicProfile ? 22 + rand() * 12 : 36 + rand() * 32) * scale;
+      const startX = x + Math.cos(angle) * size * 0.96;
+      const startY = y + Math.sin(angle) * size * 0.78;
+      const endX = startX + Math.cos(angle) * length;
+      const endY = startY + Math.sin(angle) * length;
+      const bend = (rand() - 0.5) * length * (dynamicProfile ? 0.18 : 0.42);
+      const curve = {
+        x1: startX,
+        y1: startY,
+        cx: startX + Math.cos(angle) * length * 0.48 + Math.cos(angle + Math.PI * 0.5) * bend,
+        cy: startY + Math.sin(angle) * length * 0.48 + Math.sin(angle + Math.PI * 0.5) * bend,
+        x2: endX,
+        y2: endY,
+      };
+      const forkCount = dynamicProfile ? 0 : (compact ? 1 : (rand() > 0.35 ? 2 : 1));
+      const forks = Array.from({ length: forkCount }, (_, forkIndex) => {
+        const at = dynamicProfile ? 0.52 + rand() * 0.24 : 0.38 + rand() * 0.38;
+        const origin = this.curvePoint(curve, at);
+        const forkAngle = angle + (forkIndex % 2 === 0 ? 1 : -1) * (0.34 + rand() * 0.26);
+        const forkLength = (dynamicProfile ? 6 + rand() * 8 : 12 + rand() * 19) * scale;
+        return {
+          x1: origin.x,
+          y1: origin.y,
+          cx: origin.x + Math.cos(forkAngle) * forkLength * 0.46 + Math.cos(forkAngle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 6),
+          cy: origin.y + Math.sin(forkAngle) * forkLength * 0.46 + Math.sin(forkAngle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 6),
+          x2: origin.x + Math.cos(forkAngle) * forkLength,
+          y2: origin.y + Math.sin(forkAngle) * forkLength,
+          delay: (dynamicProfile ? 0.28 : 0.22) + branchIndex * 0.04 + forkIndex * 0.07 + rand() * 0.05,
+        };
+      });
+      return {
+        curve,
+        forks,
+        width: (dynamicProfile ? 0.66 : 0.64) + rand() * 0.16,
+        delay: (dynamicProfile ? 0.08 : 0.04) + branchIndex * 0.042 + rand() * 0.04,
+        phase: rand() * Math.PI * 2,
+      };
+    });
+    const axonLength = Math.min(
+      this.width * (dynamicProfile ? 0.18 : 0.34),
+      (dynamicProfile ? 66 + rand() * 20 : 122 + rand() * 44) * scale
+    );
+    const axonBend = (rand() - 0.5) * (dynamicProfile ? 11 : 26);
+    const axon = {
+      x1: x + Math.cos(axonAngle) * size * 1.02,
+      y1: y + Math.sin(axonAngle) * size * 0.84,
+      cx: x + Math.cos(axonAngle) * axonLength * 0.56 + Math.cos(axonAngle + Math.PI * 0.5) * axonBend,
+      cy: y + Math.sin(axonAngle) * axonLength * 0.56 + Math.sin(axonAngle + Math.PI * 0.5) * axonBend,
+      x2: x + Math.cos(axonAngle) * axonLength,
+      y2: y + Math.sin(axonAngle) * axonLength,
+    };
+    const terminalAngles = dynamicProfile ? [0.04] : [-0.34, -0.08, 0.18, 0.42];
+    const terminals = terminalAngles.map((offset, terminalIndex) => {
+      const base = this.curvePoint(axon, 0.86);
+      const angle = axonAngle + offset + (rand() - 0.5) * 0.12;
+      const length = (dynamicProfile ? 9 + rand() * 7 : 20 + rand() * 15) * scale;
+      return {
+        x1: base.x,
+        y1: base.y,
+        cx: base.x + Math.cos(angle) * length * 0.55 + Math.cos(angle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 8),
+        cy: base.y + Math.sin(angle) * length * 0.55 + Math.sin(angle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 8),
+        x2: base.x + Math.cos(angle) * length,
+        y2: base.y + Math.sin(angle) * length,
+        delay: (dynamicProfile ? 0.52 : 0.48) + terminalIndex * 0.05 + rand() * 0.07,
+      };
+    });
+    const soma = Array.from({ length: 11 }, (_, pointIndex) => {
+      const angle = (pointIndex / 11) * Math.PI * 2 + rand() * 0.05;
+      return { angle, radius: 0.78 + rand() * 0.24 };
+    });
+    return {
+      x,
+      y,
+      size,
+      axonAngle,
+      dendrites,
+      axon,
+      terminals,
+      soma,
+      phase: rand() * Math.PI * 2,
+      lastTouched: -20,
+      activity: 0,
+      index,
+      profile,
+      connected: false,
+    };
+  }
+
+  buildNeuroPathConnection(rand, fromNeuron, toNeuron, from, to, index) {
+    const terminal = fromNeuron.terminals[index % fromNeuron.terminals.length];
+    const dendrite = toNeuron.dendrites[(index * 2 + 1) % toNeuron.dendrites.length].curve;
+    const target = this.curvePoint(dendrite, 0.72);
+    return {
+      from,
+      to,
+      phase: rand() * Math.PI * 2,
+      lastTouched: -20,
+      curve: {
+        x1: terminal.x2,
+        y1: terminal.y2,
+        cx: (terminal.x2 + target.x) * 0.5,
+        cy: (terminal.y2 + target.y) * 0.5 - 18 - index * 1.5,
+        x2: target.x,
+        y2: target.y,
+      },
+    };
+  }
+
+  neuroPathCurveTangent(curve, t) {
+    const x =
+      2 * (1 - t) * (curve.cx - curve.x1) +
+      2 * t * (curve.x2 - curve.cx);
+    const y =
+      2 * (1 - t) * (curve.cy - curve.y1) +
+      2 * t * (curve.y2 - curve.cy);
+    const length = Math.max(1, Math.hypot(x, y));
+    return { x: x / length, y: y / length };
+  }
+
+  neuroPathContactTargets(neuron) {
+    const targets = [];
+    neuron.dendrites.forEach((branch, branchIndex) => {
+      [0.38, 0.56, 0.74].forEach((t, sampleIndex) => {
+        const point = this.curvePoint(branch.curve, t);
+        const tangent = this.neuroPathCurveTangent(branch.curve, t);
+        targets.push({
+          x: point.x,
+          y: point.y,
+          nx: -tangent.y,
+          ny: tangent.x,
+          dendrite: true,
+          delay: branch.delay + t * 0.34,
+          score: sampleIndex * 4 + branchIndex * 0.8,
+        });
+      });
+      branch.forks.forEach((fork, forkIndex) => {
+        const t = 0.72;
+        const point = this.curvePoint(fork, t);
+        const tangent = this.neuroPathCurveTangent(fork, t);
+        targets.push({
+          x: point.x,
+          y: point.y,
+          nx: -tangent.y,
+          ny: tangent.x,
+          dendrite: true,
+          fork: true,
+          delay: fork.delay + t * 0.24,
+          score: 5 + forkIndex * 2 + branchIndex * 0.65,
+        });
+      });
+    });
+    targets.push({
+      x: neuron.x + Math.cos(neuron.axonAngle + Math.PI * 0.75) * neuron.size * 1.05,
+      y: neuron.y + Math.sin(neuron.axonAngle + Math.PI * 0.75) * neuron.size * 0.9,
+      nx: Math.cos(neuron.axonAngle + Math.PI * 0.75),
+      ny: Math.sin(neuron.axonAngle + Math.PI * 0.75),
+      dendrite: false,
+      soma: true,
+      delay: 0.18,
+      score: 45,
+    });
+    return targets;
+  }
+
+  buildNeuroPathDirectConnection(rand, fromNeuron, toNeuron, born, life) {
+    const targets = this.neuroPathContactTargets(toNeuron);
+    let terminal = fromNeuron.terminals[0];
+    let target = targets[0];
+    let bestScore = Infinity;
+    fromNeuron.terminals.forEach((candidateTerminal) => {
+      targets.forEach((candidateTarget) => {
+        const distance = Math.hypot(candidateTarget.x - candidateTerminal.x2, candidateTarget.y - candidateTerminal.y2);
+        const score = distance + candidateTarget.score + rand() * 16;
+        if (score < bestScore) {
+          bestScore = score;
+          terminal = candidateTerminal;
+          target = candidateTarget;
+        }
+      });
+    });
+    const terminalDistance = Math.hypot(target.x - terminal.x2, target.y - terminal.y2);
+    if (terminalDistance > Math.min(this.width * 0.15, 145)) {
+      return null;
+    }
+    const midX = (terminal.x2 + target.x) * 0.5;
+    const midY = (terminal.y2 + target.y) * 0.5;
+    const dx = target.x - terminal.x2;
+    const dy = target.y - terminal.y2;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const bend = clamp(distance * 0.16, 10, 24) * (rand() > 0.5 ? 1 : -1);
+    const readyDelay = Math.max(
+      fromNeuron.dynamic ? (terminal.delay || 0.38) + 0.18 : 0,
+      toNeuron.dynamic ? (target.delay || 0.18) + 0.08 : 0
+    );
+    return {
+      fromNeuron,
+      toNeuron,
+      born,
+      life,
+      phase: rand() * Math.PI * 2,
+      readyDelay,
+      contact: {
+        nx: target.nx,
+        ny: target.ny,
+        dendrite: target.dendrite,
+        fork: target.fork,
+        soma: target.soma,
+      },
+      curve: {
+        x1: terminal.x2,
+        y1: terminal.y2,
+        cx: midX + (-dy / distance) * bend,
+        cy: midY + (dx / distance) * bend,
+        x2: target.x,
+        y2: target.y,
+      },
+    };
+  }
+
+  spawnNeuroPathNeuron(time) {
+    const scene = this.scene;
+    if (!scene || !this.pointer.active || this.pointer.strength < 0.03) {
+      return;
+    }
+    const moved = Math.hypot(this.pointer.x - scene.lastSpawnX, this.pointer.y - scene.lastSpawnY);
+    const compact = this.width < 520;
+    const spawnDelay = compact ? 0.32 : 0.24;
+    const spawnDistance = compact ? 38 : 40;
+    const stationaryReady = time - scene.lastSpawnTime > (compact ? 0.72 : 0.62);
+    if (time - scene.lastSpawnTime < spawnDelay || (moved < spawnDistance && !stationaryReady)) {
+      return;
+    }
+
+    const rand = mulberry32(hashSeed(`neuro-dynamic-${Math.round(time * 8)}-${Math.round(this.pointer.x)}-${Math.round(this.pointer.y)}`));
+    const velocityAngle = Math.atan2(this.pointer.vy, this.pointer.vx);
+    const fallbackAngle = (rand() - 0.5) * 0.28;
+    let axonAngle = Number.isFinite(velocityAngle) && Math.hypot(this.pointer.vx, this.pointer.vy) > 1.2
+      ? velocityAngle * 0.58
+      : fallbackAngle;
+    const x = clamp(this.pointer.x + (rand() - 0.5) * 18, 52, this.width - 52);
+    const y = clamp(this.pointer.y + (rand() - 0.5) * 18, 58, this.height - 58);
+    const candidates = scene.dynamicNeurons.length
+      ? scene.dynamicNeurons
+      : scene.neurons;
+    const nearby = [];
+    const linkLimit = Math.min(this.width * 0.16, compact ? 106 : 138);
+    for (let i = 0; i < candidates.length; i += 1) {
+      const candidate = candidates[i];
+      const distance = Math.hypot(candidate.x - x, candidate.y - y);
+      if (distance < linkLimit) {
+        nearby.push({ candidate, distance });
+      }
+    }
+    nearby.sort((a, b) => a.distance - b.distance);
+    const linkedNeuron = nearby.length ? nearby[0].candidate : null;
+    if (linkedNeuron) {
+      axonAngle = Math.atan2(linkedNeuron.y - y, linkedNeuron.x - x) + (rand() - 0.5) * 0.16;
+    }
+    const neuron = this.buildNeuroPathNeuron(
+      rand,
+      x,
+      y,
+      axonAngle,
+      0.92 + rand() * 0.15,
+      scene.neurons.length + scene.dynamicNeurons.length,
+      "dynamic"
+    );
+    neuron.born = time;
+    neuron.life = 5.8 + rand() * 0.7;
+    neuron.lastTouched = time;
+    neuron.activity = 1;
+    neuron.dynamic = true;
+    neuron.connected = false;
+
+    if (linkedNeuron) {
+      const connection = this.buildNeuroPathDirectConnection(rand, neuron, linkedNeuron, time, neuron.life);
+      if (connection) {
+        neuron.connected = true;
+        linkedNeuron.connected = true;
+        scene.dynamicConnections.push(connection);
+      }
+    }
+
+    scene.dynamicNeurons.push(neuron);
+    const cap = compact ? 4 : 7;
+    while (scene.dynamicNeurons.length > cap) {
+      const removed = scene.dynamicNeurons.shift();
+      scene.dynamicConnections = scene.dynamicConnections.filter((connection) => (
+        connection.fromNeuron !== removed && connection.toNeuron !== removed
+      ));
+    }
+    while (scene.dynamicConnections.length > cap) {
+      scene.dynamicConnections.shift();
+    }
+    scene.lastSpawnTime = time;
+    scene.lastSpawnX = this.pointer.x;
+    scene.lastSpawnY = this.pointer.y;
   }
 
   shouldAnimate() {
@@ -793,16 +1201,16 @@ class ProjectVisualController {
   clearSurface(ctx) {
     ctx.clearRect(0, 0, this.width, this.height);
     const radial = ctx.createRadialGradient(
-      this.width * 0.68,
-      this.height * 0.24,
+      this.width * 0.48,
+      this.height * 0.48,
       0,
-      this.width * 0.68,
-      this.height * 0.24,
-      Math.max(this.width, this.height) * 0.75
+      this.width * 0.48,
+      this.height * 0.48,
+      Math.max(this.width, this.height) * 0.72
     );
-    radial.addColorStop(0, "rgba(216, 170, 104, 0.17)");
-    radial.addColorStop(0.48, "rgba(216, 170, 104, 0.05)");
-    radial.addColorStop(1, "rgba(216, 170, 104, 0)");
+    radial.addColorStop(0, "rgba(210, 161, 95, 0.095)");
+    radial.addColorStop(0.58, "rgba(210, 161, 95, 0.025)");
+    radial.addColorStop(1, "rgba(210, 161, 95, 0)");
     ctx.fillStyle = radial;
     ctx.fillRect(0, 0, this.width, this.height);
   }
@@ -812,435 +1220,1217 @@ class ProjectVisualController {
       return;
     }
     const time = timeStamp * 0.001;
-    this.pointer.strength += ((this.pointer.active ? 1 : 0) - this.pointer.strength) * 0.09;
+    const dt = this.lastTime ? clamp(time - this.lastTime, 0.001, 0.033) : 0.016;
+    this.lastTime = time || this.lastTime;
+    this.pointer.strength += ((this.pointer.active ? 1 : 0) - this.pointer.strength) * 0.1;
+
     const ctx = this.ctx;
     this.clearSurface(ctx);
-
     if (this.mode === "kerr") {
-      this.drawKerr(ctx, time);
+      this.drawKerr(ctx, time, dt);
     } else if (this.mode === "motorproof") {
-      this.drawMotorProof(ctx, time);
+      this.drawMotorProof(ctx, time, dt);
     } else if (this.mode === "supplement") {
-      this.drawSupplement(ctx, time);
+      this.drawSupplement(ctx, time, dt);
     } else {
-      this.drawNeuroPath(ctx, time);
+      this.drawNeuroPath(ctx, time, dt);
     }
-
     if (this.frame) {
       this.frame = window.requestAnimationFrame(this.draw);
     }
   }
 
-  drawNeuroPath(ctx, time) {
-    const { width, height } = this;
-    const pointerX = this.pointer.active ? this.pointer.x : width * 0.58 + Math.sin(time * 0.3) * 24;
-    const pointerY = this.pointer.active ? this.pointer.y : height * 0.48 + Math.cos(time * 0.25) * 18;
-    const strength = Math.max(this.pointer.strength, this.pointer.active ? 0.2 : 0);
-    const gatherNodes = Array.from({ length: 9 }, (_, index) => {
-      const angle = (index / 9) * Math.PI * 2 + time * 0.45;
-      const radius = 34 + (index % 4) * 17;
+  tint(tint, alpha) {
+    if (tint === "cool") {
+      return `rgba(180, 204, 208, ${alpha})`;
+    }
+    if (tint === "gold") {
+      return `rgba(210, 161, 95, ${alpha})`;
+    }
+    return `rgba(157, 91, 50, ${alpha})`;
+  }
+
+  spawnNeuron(time) {
+    const scene = this.scene;
+    if (!this.pointer.active || !scene) {
+      return;
+    }
+    const distanceFromLast = scene.lastSpawnX === null
+      ? Infinity
+      : Math.hypot(this.pointer.x - scene.lastSpawnX, this.pointer.y - scene.lastSpawnY);
+    const pointerSpeed = Math.hypot(this.pointer.vx, this.pointer.vy);
+    const minTime = pointerSpeed > 1.4 ? 0.18 : 0.5;
+    if (time - scene.lastSpawn < minTime || distanceFromLast < 42) {
+      return;
+    }
+    scene.lastSpawn = time;
+    scene.lastSpawnX = this.pointer.x;
+    scene.lastSpawnY = this.pointer.y;
+    scene.seed += 1;
+    const rand = mulberry32(hashSeed(`neuron-${scene.seed}-${Math.round(this.pointer.x)}-${Math.round(this.pointer.y)}`));
+    const travelAngle = pointerSpeed > 2
+      ? Math.atan2(this.pointer.vy, this.pointer.vx)
+      : -0.16 + (rand() - 0.5) * 0.7;
+    const axonAngle = travelAngle + (rand() - 0.5) * 0.42;
+    const somaX = clamp(this.pointer.x + (rand() - 0.5) * 20, 28, this.width - 28);
+    const somaY = clamp(this.pointer.y + (rand() - 0.5) * 20, 30, this.height - 30);
+    const branchCount = this.width < 520 ? 7 : 9 + Math.floor(rand() * 3);
+    const dendrites = Array.from({ length: branchCount }, (_, index) => {
+      const fan = branchCount > 1 ? (index / (branchCount - 1) - 0.5) : 0;
+      const angle = axonAngle + Math.PI + fan * Math.PI * 1.55 + (rand() - 0.5) * 0.46;
+      const length = 42 + rand() * 78;
+      const bend = (rand() - 0.5) * 36 + Math.sin(index * 1.83) * 8;
+      const forkCount = 2 + Math.floor(rand() * 2);
       return {
-        x: pointerX + Math.cos(angle) * radius,
-        y: pointerY + Math.sin(angle) * radius * 0.82,
+        angle,
+        length,
+        bend,
+        width: 1.05 + rand() * 0.65,
+        forks: Array.from({ length: forkCount }, (_, forkIndex) => ({
+          at: 0.34 + rand() * 0.5,
+          angle: angle + (forkIndex % 2 === 0 ? 1 : -1) * (0.44 + rand() * 0.68),
+          length: 13 + rand() * 34,
+          bend: (rand() - 0.5) * 20,
+          spinePhase: rand() * Math.PI * 2,
+        })),
+        phase: rand() * Math.PI * 2,
+        endpoint: { x: 0, y: 0 }
       };
     });
-
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    this.scene.dust.forEach((dust) => {
-      const x = dust.x * width + Math.sin(time * 0.4 + dust.phase) * 8;
-      const y = dust.y * height + Math.cos(time * 0.34 + dust.phase) * 7;
-      const influence = strength * ease(1 - Math.hypot(pointerX - x, pointerY - y) / 170);
-      const node = gatherNodes[Math.floor(dust.phase * 10) % gatherNodes.length];
-      const drawX = lerp(x, node.x, influence * 0.84);
-      const drawY = lerp(y, node.y, influence * 0.84);
-      ctx.fillStyle = `rgba(124, 71, 40, ${0.12 + influence * 0.38})`;
-      ctx.beginPath();
-      ctx.arc(drawX, drawY, dust.size + influence * 1.4, 0, Math.PI * 2);
-      ctx.fill();
+    const terminalCount = 3 + Math.floor(rand() * 3);
+    const axon = {
+      angle: axonAngle,
+      length: Math.min(this.width * 0.36, 132 + rand() * 104),
+      bend: (rand() - 0.5) * 58,
+      terminals: Array.from({ length: terminalCount }, (_, index) => ({
+        angle: axonAngle + (index - (terminalCount - 1) / 2) * 0.34 + (rand() - 0.5) * 0.2,
+        length: 18 + rand() * 34,
+        phase: rand() * Math.PI * 2,
+      })),
+    };
+    scene.neurons.push({
+      x: somaX,
+      y: somaY,
+      born: time,
+      last: time,
+      life: 4.8 + rand() * 0.9,
+      size: 10.5 + rand() * 4.2,
+      dendrites,
+      axon,
+      validated: rand() > 0.7,
+      phase: rand() * Math.PI * 2,
     });
+    const cap = this.width < 520 ? 5 : 6;
+    if (scene.neurons.length > cap) {
+      scene.neurons.shift();
+    }
+  }
 
-    const nodes = this.scene.nodes.map((node, index) => {
-      const idleX = node.x * width + Math.sin(time * 0.42 + node.phase) * 10;
-      const idleY = node.y * height + Math.cos(time * 0.38 + node.phase) * 9;
-      const influence = strength * ease(1 - Math.hypot(pointerX - idleX, pointerY - idleY) / 220);
-      const gather = gatherNodes[index % gatherNodes.length];
-      return {
-        x: lerp(idleX, gather.x, influence * 0.8),
-        y: lerp(idleY, gather.y, influence * 0.8),
-        size: node.size + influence * 2,
-        validated: node.validated,
-        influence,
-      };
-    });
+  neuronPoint(neuron, branch, amount) {
+    const growLength = branch.length * amount;
+    const endX = neuron.x + Math.cos(branch.angle) * growLength;
+    const endY = neuron.y + Math.sin(branch.angle) * growLength;
+    const cX = neuron.x + Math.cos(branch.angle + Math.PI * 0.5) * branch.bend * amount + Math.cos(branch.angle) * growLength * 0.46;
+    const cY = neuron.y + Math.sin(branch.angle + Math.PI * 0.5) * branch.bend * amount + Math.sin(branch.angle) * growLength * 0.46;
+    const inv = 1 - amount;
+    return {
+      x: inv * inv * neuron.x + 2 * inv * amount * cX + amount * amount * endX,
+      y: inv * inv * neuron.y + 2 * inv * amount * cY + amount * amount * endY,
+      cX,
+      cY,
+      endX,
+      endY,
+    };
+  }
 
-    nodes.forEach((a, index) => {
-      for (let nextIndex = index + 1; nextIndex < nodes.length; nextIndex += 1) {
-        const b = nodes[nextIndex];
-        const distance = Math.hypot(a.x - b.x, a.y - b.y);
-        const threshold = 84 + (a.influence + b.influence) * 74;
-        if (distance > threshold) {
+  axonPoint(neuron, amount) {
+    const axon = neuron.axon;
+    const length = axon.length * amount;
+    const endX = neuron.x + Math.cos(axon.angle) * length;
+    const endY = neuron.y + Math.sin(axon.angle) * length;
+    const cX = neuron.x + Math.cos(axon.angle + Math.PI * 0.5) * axon.bend * amount + Math.cos(axon.angle) * length * 0.5;
+    const cY = neuron.y + Math.sin(axon.angle + Math.PI * 0.5) * axon.bend * amount + Math.sin(axon.angle) * length * 0.5;
+    const inv = 1 - amount;
+    return {
+      x: inv * inv * neuron.x + 2 * inv * amount * cX + amount * amount * endX,
+      y: inv * inv * neuron.y + 2 * inv * amount * cY + amount * amount * endY,
+      cX,
+      cY,
+      endX,
+      endY,
+    };
+  }
+
+  findNearestDendrite(sourceNeuron, terminalX, terminalY, neurons) {
+    let best = null;
+    let bestDistance = 9999;
+    for (let i = 0; i < neurons.length; i += 1) {
+      const target = neurons[i];
+      if (target === sourceNeuron) {
+        continue;
+      }
+      const somaDistance = Math.hypot(target.x - terminalX, target.y - terminalY);
+      if (somaDistance < bestDistance) {
+        bestDistance = somaDistance;
+        best = { x: target.x, y: target.y, soma: true };
+      }
+      for (let j = 0; j < target.dendrites.length; j += 1) {
+        const branch = target.dendrites[j];
+        const endpoint = branch.endpoint;
+        if (!endpoint.ready) {
           continue;
         }
-        const alpha = (1 - distance / threshold) * (0.11 + (a.influence + b.influence) * 0.18);
-        ctx.strokeStyle = a.validated && b.validated
-          ? `rgba(163, 95, 52, ${alpha})`
-          : `rgba(159, 191, 194, ${alpha * 0.78})`;
-        ctx.lineWidth = 1 + (a.influence + b.influence) * 0.7;
-        ctx.setLineDash(a.validated && b.validated ? [] : [4, 9]);
-        ctx.lineDashOffset = -time * 16;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
+        const distance = Math.hypot(endpoint.x - terminalX, endpoint.y - terminalY);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = endpoint;
+        }
       }
-    });
-    ctx.setLineDash([]);
+    }
+    return bestDistance < 86 ? { point: best, distance: bestDistance } : null;
+  }
 
-    nodes.forEach((node) => {
-      const pulse = (Math.sin(time * 2.4 + node.x * 0.02) + 1) * 0.5;
-      ctx.fillStyle = node.validated
-        ? `rgba(163, 95, 52, ${0.35 + node.influence * 0.34})`
-        : `rgba(159, 191, 194, ${0.24 + node.influence * 0.28})`;
-      ctx.strokeStyle = `rgba(255, 250, 242, ${0.25 + pulse * 0.2})`;
-      ctx.lineWidth = 1;
+  drawNeuroPath(ctx, time) {
+    const { width, height } = this;
+    this.spawnNeuron(time);
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    const pointerActive = this.pointer.active && this.pointer.strength > 0.025;
+    for (let i = 0; i < this.scene.dust.length; i += 1) {
+      const dust = this.scene.dust[i];
+      const x = dust.x * width + Math.sin(time * 0.26 + dust.phase) * 9;
+      const y = dust.y * height + Math.cos(time * 0.22 + dust.phase) * 7;
+      const influence = pointerActive
+        ? ease(1 - Math.hypot(this.pointer.x - x, this.pointer.y - y) / 155) * this.pointer.strength
+        : 0;
+      ctx.fillStyle = this.tint(dust.tint, 0.075 + influence * 0.24);
       ctx.beginPath();
-      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+      ctx.arc(lerp(x, this.pointer.x, influence * 0.16), lerp(y, this.pointer.y, influence * 0.16), dust.size + influence * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const neurons = this.scene.neurons;
+    for (let i = neurons.length - 1; i >= 0; i -= 1) {
+      const neuron = neurons[i];
+      if (pointerActive && Math.hypot(this.pointer.x - neuron.x, this.pointer.y - neuron.y) < 104) {
+        neuron.last = time;
+      }
+      if (time - neuron.last >= neuron.life) {
+        neurons.splice(i, 1);
+      }
+    }
+
+    for (let i = 0; i < neurons.length; i += 1) {
+      const neuron = neurons[i];
+      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
+      const alpha = ease(1 - decay);
+      const edgeAlpha = ease(1 - decay * 1.18);
+      const age = time - neuron.born;
+      for (let index = 0; index < neuron.dendrites.length; index += 1) {
+        const branch = neuron.dendrites[index];
+        const grow = ease(clamp(age * 0.92 - index * 0.035, 0, 1));
+        if (grow <= 0) {
+          branch.endpoint.ready = false;
+          continue;
+        }
+        const p = this.neuronPoint(neuron, branch, grow);
+        branch.endpoint.x = p.x;
+        branch.endpoint.y = p.y;
+        branch.endpoint.ready = grow > 0.7;
+        ctx.strokeStyle = neuron.validated
+          ? `rgba(180, 204, 208, ${0.16 * edgeAlpha})`
+          : `rgba(123, 71, 41, ${0.24 * edgeAlpha})`;
+        ctx.lineWidth = branch.width + edgeAlpha * 0.72;
+        ctx.beginPath();
+        ctx.moveTo(neuron.x, neuron.y);
+        ctx.quadraticCurveTo(p.cX, p.cY, p.x, p.y);
+        ctx.stroke();
+
+        for (let forkIndex = 0; forkIndex < branch.forks.length; forkIndex += 1) {
+          const fork = branch.forks[forkIndex];
+          if (grow < fork.at) {
+            continue;
+          }
+          const forkGrow = ease((grow - fork.at) / (1 - fork.at));
+          const origin = this.neuronPoint(neuron, branch, fork.at);
+          const fx = origin.x + Math.cos(fork.angle) * fork.length * forkGrow;
+          const fy = origin.y + Math.sin(fork.angle) * fork.length * forkGrow;
+          ctx.strokeStyle = `rgba(123, 71, 41, ${0.15 * edgeAlpha})`;
+          ctx.lineWidth = 0.64 + edgeAlpha * 0.36;
+          ctx.beginPath();
+          ctx.moveTo(origin.x, origin.y);
+          ctx.quadraticCurveTo(
+            origin.x + Math.cos(fork.angle + 0.58) * fork.bend,
+            origin.y + Math.sin(fork.angle + 0.58) * fork.bend,
+            fx,
+            fy
+          );
+          ctx.stroke();
+
+          const spineT = 0.4 + ((fork.spinePhase + time * 0.02) % 0.35);
+          if (forkGrow > spineT) {
+            const spineX = origin.x + Math.cos(fork.angle) * fork.length * spineT;
+            const spineY = origin.y + Math.sin(fork.angle) * fork.length * spineT;
+            ctx.strokeStyle = `rgba(123, 71, 41, ${0.08 * edgeAlpha})`;
+            ctx.lineWidth = 0.55;
+            ctx.beginPath();
+            ctx.moveTo(spineX, spineY);
+            ctx.lineTo(
+              spineX + Math.cos(fork.angle + Math.PI * 0.55) * 4.2,
+              spineY + Math.sin(fork.angle + Math.PI * 0.55) * 4.2
+            );
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = `rgba(210, 161, 95, ${0.18 * alpha})`;
+          ctx.beginPath();
+          ctx.arc(fx, fy, 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (index % 2 === 0 && grow > 0.66) {
+          const spine = this.neuronPoint(neuron, branch, 0.72 + (branch.phase % 0.2));
+          ctx.fillStyle = `rgba(123, 71, 41, ${0.11 * edgeAlpha})`;
+          ctx.beginPath();
+          ctx.arc(spine.x + Math.cos(branch.angle + 1.2) * 4, spine.y + Math.sin(branch.angle + 1.2) * 4, 1.15, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    for (let i = 0; i < neurons.length; i += 1) {
+      const neuron = neurons[i];
+      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
+      const alpha = ease(1 - decay);
+      const edgeAlpha = ease(1 - decay * 1.18);
+      const age = time - neuron.born;
+      const grow = ease(clamp(age * 0.62, 0, 1));
+      const axonEnd = this.axonPoint(neuron, grow);
+      neuron.axon.end = axonEnd;
+      ctx.strokeStyle = neuron.validated
+        ? `rgba(180, 204, 208, ${0.2 * edgeAlpha})`
+        : `rgba(157, 91, 50, ${0.3 * edgeAlpha})`;
+      ctx.lineWidth = 1.05 + edgeAlpha * 0.48;
+      ctx.beginPath();
+      ctx.moveTo(neuron.x, neuron.y);
+      ctx.quadraticCurveTo(axonEnd.cX, axonEnd.cY, axonEnd.x, axonEnd.y);
+      ctx.stroke();
+
+      for (let terminalIndex = 0; terminalIndex < neuron.axon.terminals.length; terminalIndex += 1) {
+        const terminal = neuron.axon.terminals[terminalIndex];
+        if (grow < 0.74) {
+          terminal.ready = false;
+          continue;
+        }
+        const terminalGrow = ease((grow - 0.74) / 0.26);
+        const base = this.axonPoint(neuron, 0.9 + (terminal.phase % 0.08));
+        const tx = base.x + Math.cos(terminal.angle) * terminal.length * terminalGrow;
+        const ty = base.y + Math.sin(terminal.angle) * terminal.length * terminalGrow;
+        terminal.x = tx;
+        terminal.y = ty;
+        terminal.ready = terminalGrow > 0.72;
+        ctx.strokeStyle = `rgba(123, 71, 41, ${0.18 * edgeAlpha})`;
+        ctx.lineWidth = 0.92;
+        ctx.beginPath();
+        ctx.moveTo(base.x, base.y);
+        ctx.quadraticCurveTo(
+          base.x + Math.cos(terminal.angle + 0.45) * 14,
+          base.y + Math.sin(terminal.angle + 0.45) * 14,
+          tx,
+          ty
+        );
+        ctx.stroke();
+        ctx.fillStyle = `rgba(157, 91, 50, ${0.24 * alpha})`;
+        ctx.beginPath();
+        ctx.arc(tx, ty, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (age > 0.75 && edgeAlpha > 0.12) {
+        const pulseT = (time * 0.5 + neuron.phase) % 1;
+        const pulse = this.axonPoint(neuron, pulseT);
+        ctx.fillStyle = neuron.validated
+          ? `rgba(180, 204, 208, ${0.54 * edgeAlpha})`
+          : `rgba(255, 231, 187, ${0.48 * edgeAlpha})`;
+        ctx.beginPath();
+        ctx.arc(pulse.x, pulse.y, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        const branch = neuron.dendrites[(Math.floor(time + neuron.phase) + i) % neuron.dendrites.length];
+        const dendritePulseT = (time * 0.34 + neuron.phase * 0.37) % 1;
+        if (branch?.endpoint.ready && dendritePulseT < 0.92) {
+          const dendritePulse = this.neuronPoint(neuron, branch, dendritePulseT);
+          ctx.fillStyle = `rgba(180, 204, 208, ${0.28 * edgeAlpha})`;
+          ctx.beginPath();
+          ctx.arc(dendritePulse.x, dendritePulse.y, 1.65, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    for (let i = 0; i < neurons.length; i += 1) {
+      const neuron = neurons[i];
+      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
+      const alpha = ease(1 - decay);
+      let bestContact = null;
+      for (let j = 0; j < neuron.axon.terminals.length; j += 1) {
+        const terminal = neuron.axon.terminals[j];
+        if (!terminal.ready) {
+          continue;
+        }
+        const target = this.findNearestDendrite(neuron, terminal.x, terminal.y, neurons);
+        if (target && (!bestContact || target.distance < bestContact.distance)) {
+          bestContact = { terminal, point: target.point, distance: target.distance };
+        }
+      }
+      if (bestContact) {
+        const contactAlpha = (1 - bestContact.distance / 86) * 0.23 * alpha;
+        ctx.strokeStyle = `rgba(123, 71, 41, ${contactAlpha})`;
+        ctx.lineWidth = 0.9;
+        ctx.setLineDash([3, 7]);
+        ctx.beginPath();
+        ctx.moveTo(bestContact.terminal.x, bestContact.terminal.y);
+        ctx.quadraticCurveTo(
+          (bestContact.terminal.x + bestContact.point.x) / 2,
+          (bestContact.terminal.y + bestContact.point.y) / 2 - 16,
+          bestContact.point.x,
+          bestContact.point.y
+        );
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = `rgba(180, 204, 208, ${contactAlpha * 1.8})`;
+        ctx.beginPath();
+        ctx.arc(bestContact.point.x, bestContact.point.y, bestContact.point.soma ? 2.4 : 1.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < neurons.length; i += 1) {
+      const neuron = neurons[i];
+      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
+      const alpha = ease(1 - decay);
+      const hillockX = neuron.x + Math.cos(neuron.axon.angle) * neuron.size * 0.9;
+      const hillockY = neuron.y + Math.sin(neuron.axon.angle) * neuron.size * 0.72;
+      ctx.fillStyle = neuron.validated
+        ? `rgba(180, 204, 208, ${0.36 * alpha})`
+        : `rgba(123, 71, 41, ${0.56 * alpha})`;
+      ctx.beginPath();
+      ctx.ellipse(neuron.x, neuron.y, neuron.size * 1.08, neuron.size * 0.92, neuron.axon.angle * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255, 248, 238, ${0.38 * alpha})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(157, 91, 50, ${0.2 * alpha})`;
+      ctx.lineWidth = 1.05;
+      ctx.beginPath();
+      ctx.moveTo(neuron.x, neuron.y);
+      ctx.lineTo(hillockX, hillockY);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(33, 20, 13, ${0.17 * alpha})`;
+      ctx.beginPath();
+      ctx.arc(neuron.x + Math.cos(neuron.axon.angle + 0.8) * neuron.size * 0.18, neuron.y + Math.sin(neuron.axon.angle + 0.8) * neuron.size * 0.18, neuron.size * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  curvePoint(curve, amount) {
+    const t = clamp(amount, 0, 1);
+    const inv = 1 - t;
+    return {
+      x: inv * inv * curve.x1 + 2 * inv * t * curve.cx + t * t * curve.x2,
+      y: inv * inv * curve.y1 + 2 * inv * t * curve.cy + t * t * curve.y2,
+    };
+  }
+
+  drawCurveSegment(ctx, curve, amount, steps = 12) {
+    const end = clamp(amount, 0, 1);
+    if (end <= 0.002) {
+      return;
+    }
+    const count = Math.max(1, Math.ceil(steps * end));
+    ctx.beginPath();
+    ctx.moveTo(curve.x1, curve.y1);
+    for (let step = 1; step <= count; step += 1) {
+      const t = (step / count) * end;
+      const inv = 1 - t;
+      ctx.lineTo(
+        inv * inv * curve.x1 + 2 * inv * t * curve.cx + t * t * curve.x2,
+        inv * inv * curve.y1 + 2 * inv * t * curve.cy + t * t * curve.y2
+      );
+    }
+    ctx.stroke();
+  }
+
+  drawNeuroPath(ctx, time) {
+    const scene = this.scene;
+    const pointerActive = this.pointer.active && this.pointer.strength > 0.018;
+    const linger = 7.2;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    for (let i = 0; i < scene.dust.length; i += 1) {
+      const dust = scene.dust[i];
+      const x = dust.x * this.width + Math.sin(time * 0.16 + dust.phase) * 4;
+      const y = dust.y * this.height + Math.cos(time * 0.14 + dust.phase) * 3;
+      const near = pointerActive ? ease(1 - Math.hypot(this.pointer.x - x, this.pointer.y - y) / 160) : 0;
+      ctx.fillStyle = this.tint(dust.tint, 0.034 + near * 0.05);
+      ctx.beginPath();
+      ctx.arc(x, y, dust.size + near * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    this.spawnNeuroPathNeuron(time);
+
+    for (let i = scene.dynamicNeurons.length - 1; i >= 0; i -= 1) {
+      const neuron = scene.dynamicNeurons[i];
+      if (time - neuron.born > neuron.life) {
+        scene.dynamicNeurons.splice(i, 1);
+      }
+    }
+    const liveDynamicNeurons = new Set(scene.dynamicNeurons);
+    for (let i = scene.dynamicConnections.length - 1; i >= 0; i -= 1) {
+      const connection = scene.dynamicConnections[i];
+      const missingFrom = connection.fromNeuron?.dynamic && !liveDynamicNeurons.has(connection.fromNeuron);
+      const missingTo = connection.toNeuron?.dynamic && !liveDynamicNeurons.has(connection.toNeuron);
+      if (time - connection.born > connection.life || missingFrom || missingTo) {
+        scene.dynamicConnections.splice(i, 1);
+      }
+    }
+
+    const allNeurons = scene.neurons.concat(scene.dynamicNeurons);
+    const dynamicLayerActive = scene.dynamicNeurons.length > 0;
+
+    for (let i = 0; i < scene.relay.length; i += 1) {
+      scene.relay[i] = 0;
+    }
+
+    for (let i = 0; i < allNeurons.length; i += 1) {
+      const neuron = allNeurons[i];
+      const localDirect = pointerActive
+        ? ease(1 - Math.hypot(this.pointer.x - neuron.x, this.pointer.y - neuron.y) / 220) * this.pointer.strength
+        : 0;
+      const direct = neuron.dynamic
+        ? localDirect
+        : Math.max(localDirect, pointerActive ? this.pointer.strength * 0.28 : 0);
+      if (direct > 0.015) {
+        neuron.lastTouched = time;
+      }
+      const held = neuron.dynamic
+        ? ease(1 - (time - neuron.born) / neuron.life)
+        : ease(1 - (time - neuron.lastTouched) / linger);
+      const target = neuron.dynamic
+        ? Math.max(direct, held * 0.82)
+        : Math.max(direct, held * 0.86);
+      neuron.activity = lerp(neuron.activity, target, 0.24);
+    }
+
+    for (let i = 0; i < scene.connections.length; i += 1) {
+      const connection = scene.connections[i];
+      const fromActivity = scene.neurons[connection.from].activity;
+      const toActivity = scene.neurons[connection.to].activity;
+      if (fromActivity > 0.12 || toActivity > 0.18) {
+        connection.lastTouched = time;
+        scene.relay[connection.to] = Math.max(scene.relay[connection.to], fromActivity * 0.46);
+      }
+    }
+
+    for (let i = 0; i < scene.neurons.length; i += 1) {
+      const neuron = scene.neurons[i];
+      neuron.activity = Math.max(neuron.activity, scene.relay[i]);
+    }
+
+    for (let i = 0; i < scene.connections.length; i += 1) {
+      const connection = scene.connections[i];
+      const fromActivity = scene.neurons[connection.from].activity;
+      const toActivity = scene.neurons[connection.to].activity;
+      const held = ease(1 - (time - connection.lastTouched) / linger);
+      const alpha = (0.04 + Math.max(fromActivity, toActivity, held) * 0.18) * (dynamicLayerActive ? 0.32 : 1);
+      if (alpha < 0.024) {
+        continue;
+      }
+      ctx.strokeStyle = `rgba(123, 71, 41, ${alpha})`;
+      ctx.lineWidth = 0.38 + alpha * 0.64;
+      ctx.beginPath();
+      ctx.moveTo(connection.curve.x1, connection.curve.y1);
+      ctx.quadraticCurveTo(connection.curve.cx, connection.curve.cy, connection.curve.x2, connection.curve.y2);
+      ctx.stroke();
+
+      const pulseAlpha = Math.max(fromActivity, held) * 0.72;
+      if (pulseAlpha > 0.04) {
+        const pulse = this.curvePoint(connection.curve, (time * 0.24 + connection.phase) % 1);
+        ctx.fillStyle = `rgba(180, 204, 208, ${0.08 + pulseAlpha * 0.38})`;
+        ctx.beginPath();
+        ctx.arc(pulse.x, pulse.y, 0.95 + pulseAlpha * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < scene.dynamicConnections.length; i += 1) {
+      const connection = scene.dynamicConnections[i];
+      const ageSeconds = time - connection.born;
+      const age = clamp(ageSeconds / connection.life, 0, 1);
+      const readyAge = ageSeconds - (connection.readyDelay || 0);
+      if (readyAge <= -0.02) {
+        continue;
+      }
+      const grow = ease(readyAge / 0.46);
+      const lifeAlpha = ease(clamp((connection.life - ageSeconds) / 1.35, 0, 1));
+      const fromActivity = connection.fromNeuron.activity || 0;
+      const toActivity = connection.toNeuron.activity || 0;
+      const alpha = grow * lifeAlpha * (0.18 + Math.max(fromActivity, toActivity) * 0.36);
+      if (alpha < 0.018) {
+        continue;
+      }
+      ctx.strokeStyle = `rgba(123, 71, 41, ${alpha})`;
+      ctx.lineWidth = 0.64 + alpha * 0.9;
+      this.drawCurveSegment(ctx, connection.curve, grow, 14);
+
+      if (grow > 0.72) {
+        const endpointAlpha = lifeAlpha * grow * 0.26;
+        ctx.fillStyle = `rgba(157, 91, 50, ${endpointAlpha})`;
+        ctx.beginPath();
+        ctx.arc(connection.curve.x1, connection.curve.y1, 1.3, 0, Math.PI * 2);
+        ctx.arc(connection.curve.x2, connection.curve.y2, connection.contact?.dendrite ? 1.18 : 1.05, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const pulseAlpha = lifeAlpha * (0.24 + Math.max(fromActivity, toActivity) * 0.32);
+      const pulseOffsets = [0];
+      for (let pulseIndex = 0; pulseIndex < pulseOffsets.length; pulseIndex += 1) {
+        const pulseT = ((readyAge * 0.76) + connection.phase * 0.08 + pulseOffsets[pulseIndex]) % 1;
+        if (pulseT < grow && pulseT > 0.04) {
+          const pulse = this.curvePoint(connection.curve, pulseT);
+          ctx.fillStyle = `rgba(180, 204, 208, ${pulseAlpha * 0.16})`;
+          ctx.beginPath();
+          ctx.arc(pulse.x, pulse.y, 3.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = `rgba(255, 232, 190, ${pulseAlpha})`;
+          ctx.beginPath();
+          ctx.arc(pulse.x, pulse.y, 1.15 + pulseAlpha * 0.24, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    for (let i = 0; i < allNeurons.length; i += 1) {
+      const neuron = allNeurons[i];
+      const ageSeconds = neuron.dynamic ? time - neuron.born : 8;
+      const lifeAlpha = neuron.dynamic ? ease(clamp((neuron.life - ageSeconds) / 1.35, 0, 1)) : 1;
+      const somaGrow = neuron.dynamic ? ease(ageSeconds / 0.22) : 1;
+      const axonGrow = neuron.dynamic ? ease((ageSeconds - 0.18) / 0.58) : 1;
+      const activity = clamp(neuron.activity, 0, 1) * lifeAlpha;
+      const layerAlpha = neuron.dynamic || !dynamicLayerActive ? 1 : 0.3;
+      const branchAlpha = neuron.dynamic
+        ? (0.2 + activity * 0.24) * lifeAlpha
+        : (0.055 + activity * 0.14) * lifeAlpha * layerAlpha;
+      const fineAlpha = neuron.dynamic
+        ? (0.09 + activity * 0.14) * lifeAlpha
+        : (0.025 + activity * 0.08) * lifeAlpha * layerAlpha;
+
+      for (let branchIndex = 0; branchIndex < neuron.dendrites.length; branchIndex += 1) {
+        const branch = neuron.dendrites[branchIndex];
+        const branchGrow = neuron.dynamic ? ease((ageSeconds - branch.delay) / 0.48) : 1;
+        if (branchGrow <= 0.01) {
+          continue;
+        }
+        ctx.strokeStyle = `rgba(123, 71, 41, ${branchAlpha * branchGrow})`;
+        ctx.lineWidth = branch.width * (neuron.dynamic ? 1.12 : 0.84) + activity * 0.12;
+        this.drawCurveSegment(ctx, branch.curve, branchGrow, 11);
+
+        if (neuron.dynamic && branchGrow < 0.98) {
+          const tip = this.curvePoint(branch.curve, branchGrow);
+          ctx.fillStyle = `rgba(210, 161, 95, ${0.22 + activity * 0.34})`;
+          ctx.beginPath();
+          ctx.arc(tip.x, tip.y, 1.35, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        for (let forkIndex = 0; forkIndex < branch.forks.length; forkIndex += 1) {
+          const fork = branch.forks[forkIndex];
+          const forkGrow = neuron.dynamic ? ease((ageSeconds - fork.delay) / 0.38) : 1;
+          if (forkGrow <= 0.01) {
+            continue;
+          }
+          ctx.strokeStyle = `rgba(123, 71, 41, ${fineAlpha * forkGrow})`;
+          ctx.lineWidth = (neuron.dynamic ? 0.44 : 0.32) + activity * 0.07;
+          this.drawCurveSegment(ctx, fork, forkGrow, 8);
+        }
+
+        if (activity > 0.42 && branchGrow > 0.82) {
+          const inward = ((ageSeconds * 0.56) + branch.phase * 0.11) % 1;
+          const pulseT = clamp(branchGrow * (1 - inward), 0.06, branchGrow);
+          const branchPulse = this.curvePoint(branch.curve, pulseT);
+          const branchPulseAlpha = (0.12 + activity * 0.2) * lifeAlpha * branchGrow;
+          ctx.fillStyle = `rgba(180, 204, 208, ${branchPulseAlpha * 0.12})`;
+          ctx.beginPath();
+          ctx.arc(branchPulse.x, branchPulse.y, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = `rgba(255, 232, 190, ${branchPulseAlpha})`;
+          ctx.beginPath();
+          ctx.arc(branchPulse.x, branchPulse.y, 0.8 + branchPulseAlpha * 0.18, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      const axonAlpha = neuron.dynamic
+        ? (0.18 + activity * 0.26) * lifeAlpha * axonGrow * (neuron.connected ? 1 : 0.58)
+        : (0.07 + activity * 0.16) * lifeAlpha * layerAlpha;
+      ctx.strokeStyle = `rgba(157, 91, 50, ${axonAlpha})`;
+      ctx.lineWidth = neuron.dynamic ? 0.88 + activity * 0.18 : 0.5 + activity * 0.1;
+      this.drawCurveSegment(ctx, neuron.axon, axonGrow, 16);
+
+      if (!neuron.dynamic || neuron.connected) {
+        for (let terminalIndex = 0; terminalIndex < neuron.terminals.length; terminalIndex += 1) {
+          const terminal = neuron.terminals[terminalIndex];
+          const terminalGrow = neuron.dynamic ? ease((ageSeconds - terminal.delay) / 0.34) : 1;
+          if (terminalGrow <= 0.01) {
+            continue;
+          }
+          ctx.strokeStyle = `rgba(157, 91, 50, ${(0.055 + activity * 0.13) * terminalGrow * lifeAlpha})`;
+          ctx.lineWidth = (neuron.dynamic ? 0.42 : 0.36) + activity * 0.06;
+          this.drawCurveSegment(ctx, terminal, terminalGrow, 8);
+          ctx.fillStyle = `rgba(210, 161, 95, ${(0.065 + activity * 0.15) * terminalGrow * lifeAlpha})`;
+          ctx.beginPath();
+          ctx.arc(terminal.x2, terminal.y2, neuron.dynamic ? 0.92 + activity * 0.24 : 0.72 + activity * 0.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      if (activity > 0.04 && axonGrow > 0.28 && (!neuron.dynamic || neuron.connected)) {
+        const axonPulseOffsets = [0];
+        for (let pulseIndex = 0; pulseIndex < axonPulseOffsets.length; pulseIndex += 1) {
+          const pulseT = neuron.dynamic
+            ? ((ageSeconds * 0.88 + axonPulseOffsets[pulseIndex] + neuron.phase * 0.06) % 1)
+            : ((time * 0.28 + neuron.phase) % 1);
+          if (!neuron.dynamic || pulseT < axonGrow) {
+            const axonPulse = this.curvePoint(neuron.axon, pulseT);
+            const pulseAlpha = neuron.dynamic ? (0.24 + activity * 0.32) * lifeAlpha : (0.18 + activity * 0.28);
+            ctx.fillStyle = `rgba(180, 204, 208, ${pulseAlpha * 0.16})`;
+            ctx.beginPath();
+            ctx.arc(axonPulse.x, axonPulse.y, neuron.dynamic ? 3.4 : 2.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = `rgba(255, 232, 190, ${pulseAlpha})`;
+            ctx.beginPath();
+            ctx.arc(axonPulse.x, axonPulse.y, neuron.dynamic ? 1.12 + pulseAlpha * 0.22 : 0.92 + activity * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      const somaFillAlpha = neuron.dynamic ? 0.28 + activity * 0.15 : (0.06 + activity * 0.055) * layerAlpha;
+      const somaStrokeAlpha = neuron.dynamic ? 0.24 + activity * 0.22 : (0.055 + activity * 0.075) * layerAlpha;
+      ctx.fillStyle = `rgba(255, 248, 238, ${somaFillAlpha * somaGrow * lifeAlpha})`;
+      ctx.strokeStyle = `rgba(157, 91, 50, ${somaStrokeAlpha * lifeAlpha * somaGrow})`;
+      ctx.lineWidth = (neuron.dynamic ? 0.95 : 0.42) + activity * 0.11;
+      ctx.beginPath();
+      for (let pointIndex = 0; pointIndex < neuron.soma.length; pointIndex += 1) {
+        const point = neuron.soma[pointIndex];
+        const x = neuron.x + Math.cos(point.angle) * neuron.size * point.radius * somaGrow;
+        const y = neuron.y + Math.sin(point.angle) * neuron.size * point.radius * somaGrow;
+        if (pointIndex === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
       ctx.fill();
       ctx.stroke();
-    });
 
-    if (strength > 0.05) {
-      gatherNodes.forEach((node, index) => {
-        const next = gatherNodes[(index + 3) % gatherNodes.length];
-        const progress = (time * 0.55 + index / gatherNodes.length) % 1;
-        const x = lerp(node.x, next.x, progress);
-        const y = lerp(node.y, next.y, progress);
-        ctx.fillStyle = `rgba(216, 170, 104, ${0.22 * strength})`;
-        ctx.beginPath();
-        ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-        ctx.fill();
-      });
+      ctx.fillStyle = neuron.dynamic
+        ? `rgba(180, 204, 208, ${(0.2 + activity * 0.32) * lifeAlpha})`
+        : `rgba(180, 204, 208, ${0.02 + activity * 0.055})`;
+      ctx.beginPath();
+      ctx.arc(
+        neuron.x + Math.cos(neuron.axonAngle + 0.65) * neuron.size * 0.2,
+        neuron.y + Math.sin(neuron.axonAngle + 0.65) * neuron.size * 0.2,
+        neuron.dynamic ? 1.55 + activity * 0.38 : 0.4 + activity * 0.14,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
     }
+
     ctx.restore();
   }
 
-  drawKerr(ctx, time) {
-    const { width, height } = this;
-    const lensX = this.pointer.active ? this.pointer.x : width * 0.6;
-    const lensY = this.pointer.active ? this.pointer.y : height * 0.5;
-    const strength = 12500 + this.pointer.strength * 22000;
+  spawnKerrRay(ray, rand = Math.random, distribute = false) {
+    ray.x = distribute
+      ? lerp(-this.width * 0.08, this.width * 1.05, rand())
+      : -34 - rand() * 84;
+    const laneY = this.height * (0.1 + ray.lane * 0.8);
+    ray.y = laneY + (rand() - 0.5) * this.height * 0.035;
+    const angle = (rand() - 0.5) * 0.18;
+    const speed = 136 + rand() * 66;
+    ray.baseVx = Math.cos(angle) * speed;
+    ray.baseVy = Math.sin(angle) * speed;
+    ray.vx = ray.baseVx;
+    ray.vy = ray.baseVy;
+    ray.trail.length = 0;
+    ray.captured = false;
+    ray.captureAge = 0;
+    ray.nearMiss = false;
+    ray.brightness = 0.5 + rand() * 0.5;
+  }
 
+  drawKerr(ctx, time, dt) {
+    const lensX = this.pointer.active ? this.pointer.x : this.width * 0.58;
+    const lensY = this.pointer.active ? this.pointer.y : this.height * 0.5;
+    const pointerStrength = this.pointer.strength;
+    const weakImpactRadius = 70 + pointerStrength * 54;
+    const strongImpactRadius = 24 + pointerStrength * 18;
+    const alongRadius = 152 + pointerStrength * 62;
+    const captureRadius = 6 + pointerStrength * 9;
+    const lensStrength = 138 + pointerStrength * 590;
+    const maxSpeed = 265;
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    ctx.strokeStyle = "rgba(124, 71, 40, 0.13)";
-    ctx.lineWidth = 1;
-    for (let y = 0.16; y <= 0.84; y += 0.12) {
-      ctx.beginPath();
-      for (let step = 0; step <= 40; step += 1) {
-        const x = (step / 40) * width;
-        const baseY = y * height;
-        const dx = x - lensX;
-        const dy = baseY - lensY;
-        const bend = (-dy * strength) / (dx * dx + dy * dy + 12000);
-        const drawY = baseY + bend * 0.42;
-        if (step === 0) {
-          ctx.moveTo(x, drawY);
-        } else {
-          ctx.lineTo(x, drawY);
-        }
-      }
-      ctx.stroke();
-    }
-    for (let x = 0.14; x <= 0.86; x += 0.12) {
-      ctx.beginPath();
-      ctx.moveTo(x * width, height * 0.12);
-      ctx.lineTo(x * width + Math.sin(time + x * 20) * 5, height * 0.88);
-      ctx.stroke();
-    }
-
-    const shadow = ctx.createRadialGradient(lensX, lensY, 4, lensX, lensY, 96);
-    shadow.addColorStop(0, "rgba(33, 20, 13, 0.36)");
-    shadow.addColorStop(0.38, "rgba(124, 71, 40, 0.14)");
-    shadow.addColorStop(1, "rgba(124, 71, 40, 0)");
-    ctx.fillStyle = shadow;
-    ctx.beginPath();
-    ctx.arc(lensX, lensY, 96, 0, Math.PI * 2);
-    ctx.fill();
+    const glow = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, 165);
+    glow.addColorStop(0, `rgba(45, 27, 18, ${0.08 + pointerStrength * 0.08})`);
+    glow.addColorStop(0.22, `rgba(157, 91, 50, ${0.07 + pointerStrength * 0.09})`);
+    glow.addColorStop(0.52, `rgba(210, 161, 95, ${0.055 + pointerStrength * 0.065})`);
+    glow.addColorStop(1, "rgba(210, 161, 95, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(lensX - 165, lensY - 165, 330, 330);
 
     this.scene.rays.forEach((ray, index) => {
-      ctx.strokeStyle = index % 3 === 0
-        ? "rgba(216, 170, 104, 0.72)"
-        : index % 3 === 1
-        ? "rgba(163, 95, 52, 0.62)"
-        : "rgba(159, 191, 194, 0.42)";
-      ctx.lineWidth = index % 3 === 0 ? 1.8 : 1.2;
-      ctx.beginPath();
-      for (let step = 0; step <= 58; step += 1) {
-        const x = (step / 58) * width;
-        const baseY = ray.y * height + Math.sin(time * 0.8 + ray.phase + step * 0.18) * 1.8;
-        const dx = x - lensX;
-        const dy = baseY - lensY;
-        const bend = (-dy * strength) / (dx * dx + dy * dy + 6200);
-        const drawY = baseY + bend;
-        if (step === 0) {
-          ctx.moveTo(x, drawY);
-        } else {
-          ctx.lineTo(x, drawY);
+      if (ray.captured) {
+        ray.captureAge += dt;
+        const angle = ray.phase + ray.captureAge * (3.8 + (index % 3));
+        const radius = Math.max(2, 26 * (1 - ray.captureAge / 1.2));
+        ray.x = lensX + Math.cos(angle) * radius;
+        ray.y = lensY + Math.sin(angle) * radius * 0.72;
+      } else {
+        const dx = lensX - ray.x;
+        const dy = lensY - ray.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        let speed = Math.max(1, Math.hypot(ray.vx, ray.vy));
+        const dirX = ray.vx / speed;
+        const dirY = ray.vy / speed;
+        const along = dx * dirX + dy * dirY;
+        const impact = Math.abs(dx * dirY - dy * dirX);
+        const aheadWindow = along > -42 ? 1 : ease(1 - Math.abs(along + 42) / 78);
+        const longitudinalWindow = ease(1 - Math.abs(along) / alongRadius) * aheadWindow;
+        const weakWindow = ease(1 - impact / weakImpactRadius);
+        const strongWindow = ease(1 - impact / strongImpactRadius);
+        const fieldInfluence = longitudinalWindow * (weakWindow * 0.22 + strongWindow * 0.78);
+        if (fieldInfluence > 0.001) {
+          const perpSign = Math.sign(dy * dirX - dx * dirY) || 1;
+          const closeBoost = ease(1 - dist / (strongImpactRadius * 1.8));
+          const accel = lensStrength * fieldInfluence * (0.72 + closeBoost * 0.9);
+          ray.vx += -dirY * perpSign * accel * dt;
+          ray.vy += dirX * perpSign * accel * dt;
+        }
+        const hasPassedLens = along < -70;
+        const relax = hasPassedLens
+          ? 0.045
+          : 0.008 + (1 - weakWindow) * 0.035;
+        ray.vx = lerp(ray.vx, ray.baseVx, relax);
+        ray.vy = lerp(ray.vy, ray.baseVy, relax);
+        speed = Math.hypot(ray.vx, ray.vy);
+        if (speed > maxSpeed) {
+          ray.vx = (ray.vx / speed) * maxSpeed;
+          ray.vy = (ray.vy / speed) * maxSpeed;
+        }
+        ray.x += ray.vx * dt;
+        ray.y += ray.vy * dt;
+        const approach = ((ray.vx * dx + ray.vy * dy) / Math.max(speed * dist, 1));
+        if (
+          pointerStrength > 0.24 &&
+          dist < captureRadius &&
+          impact < captureRadius * 1.35 &&
+          approach > 0.22
+        ) {
+          ray.captured = true;
+          ray.captureAge = 0;
+          ray.vx = 0;
+          ray.vy = 0;
         }
       }
+
+      ray.trail.push({ x: ray.x, y: ray.y, captured: ray.captured });
+      if (ray.trail.length > 46) {
+        ray.trail.shift();
+      }
+      if (
+        ray.x > this.width + 55 ||
+        ray.x < -this.width * 0.48 ||
+        ray.y < -80 ||
+        ray.y > this.height + 80 ||
+        ray.captureAge > 1.15
+      ) {
+        this.spawnKerrRay(ray, Math.random, false);
+      }
+
+      ctx.beginPath();
+      let started = false;
+      ray.trail.forEach((point) => {
+        if (!started) {
+          ctx.moveTo(point.x, point.y);
+          started = true;
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      const tailAlpha = ray.captured ? Math.max(0, 1 - ray.captureAge / 1.15) : 1;
+      ctx.strokeStyle = ray.tone === 2
+        ? `rgba(180, 204, 208, ${0.32 * ray.brightness * tailAlpha})`
+        : ray.tone === 1
+        ? `rgba(157, 91, 50, ${0.62 * ray.brightness * tailAlpha})`
+        : `rgba(210, 161, 95, ${0.66 * ray.brightness * tailAlpha})`;
+      ctx.lineWidth = ray.tone === 0 ? 2.35 : 1.45 + (ray.tone % 2) * 0.34;
       ctx.stroke();
+
+      ctx.fillStyle = ray.tone === 2
+        ? `rgba(180, 204, 208, ${0.44 * tailAlpha})`
+        : `rgba(255, 231, 187, ${0.52 * tailAlpha})`;
+      ctx.beginPath();
+      ctx.arc(ray.x, ray.y, ray.captured ? 1.7 : 2.2, 0, Math.PI * 2);
+      ctx.fill();
     });
 
-    ctx.strokeStyle = "rgba(124, 71, 40, 0.46)";
-    ctx.lineWidth = 1.1;
-    this.scene.cells.forEach((cell) => {
-      const focus = 1 - clamp(Math.hypot(lensX - cell.x * width, lensY - cell.y * height) / 260, 0, 1);
-      const size = cell.size * width * (1 + focus * 0.7);
-      const x = cell.x * width + Math.sin(time + cell.phase) * 3;
-      const y = cell.y * height + Math.cos(time * 0.8 + cell.phase) * 3;
-      ctx.globalAlpha = 0.18 + focus * 0.46;
-      ctx.strokeRect(x, y, size, size);
-      if (focus > 0.45) {
-        ctx.strokeRect(x + size / 2, y, size / 2, size / 2);
-        ctx.strokeRect(x, y + size / 2, size / 2, size / 2);
-      }
-    });
-    ctx.globalAlpha = 1;
+    if (pointerStrength > 0.035) {
+      ctx.strokeStyle = `rgba(123, 71, 41, ${0.2 + pointerStrength * 0.18})`;
+      ctx.lineWidth = 1.05;
+      ctx.beginPath();
+      ctx.ellipse(lensX, lensY, 28 + pointerStrength * 18, 22 + pointerStrength * 12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(210, 161, 95, ${0.13 * pointerStrength})`;
+      ctx.setLineDash([5, 9]);
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, 64, -0.7, 0.95);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.restore();
   }
 
-  drawMotorProof(ctx, time) {
-    const { width, height } = this;
-    const gateX = width * 0.48;
-    const outputX = width * 0.84;
-    const laneY = [0.26, 0.39, 0.54, 0.69].map((ratio) => ratio * height);
-    const gateDistance = Math.hypot(this.pointer.x - gateX, this.pointer.y - height * 0.48);
-    const gateInfluence = this.pointer.active ? ease(1 - gateDistance / 180) : 0;
-    const speedScale = 1 - gateInfluence * 0.72;
+  laneY(lane) {
+    const count = this.scene.lanes;
+    const gap = Math.min(58, this.height * 0.115);
+    const center = this.height * 0.5;
+    return center + (lane - (count - 1) / 2) * gap;
+  }
 
+  motorLanePosition(lane, progress) {
+    const y = this.laneY(lane);
+    const x = lerp(this.width * 0.05, this.width * 0.96, progress);
+    return { x, y };
+  }
+
+  drawMotorProof(ctx, time, dt) {
+    const inspectionX = this.width * 0.5;
+    const pointerActive = this.pointer.active && this.pointer.strength > 0.04;
+    const laneGap = this.scene.lanes > 1 ? this.laneY(1) - this.laneY(0) : 54;
+    const roadTop = this.laneY(0) - laneGap * 0.48;
+    const roadBottom = this.laneY(this.scene.lanes - 1) + laneGap * 0.48;
+    const roadStart = this.width * 0.05;
+    const roadEnd = this.width * 0.96;
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "rgba(45, 27, 18, 0.32)";
-    ctx.lineWidth = 1.4;
 
-    laneY.forEach((y, index) => {
-      ctx.beginPath();
-      ctx.moveTo(width * 0.06, y);
-      ctx.bezierCurveTo(width * 0.24, y, gateX - 36, height * 0.48, gateX, height * 0.48);
-      ctx.bezierCurveTo(gateX + 46, height * (0.31 + index * 0.1), width * 0.68, y, outputX, y);
-      ctx.stroke();
-    });
-
-    ctx.strokeStyle = `rgba(163, 95, 52, ${0.4 + gateInfluence * 0.38})`;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(gateX - 22, height * 0.25, 44, height * 0.5);
-    ctx.beginPath();
-    ctx.moveTo(gateX - 12, height * 0.42);
-    ctx.lineTo(gateX + 12, height * 0.42);
-    ctx.moveTo(gateX - 12, height * 0.54);
-    ctx.lineTo(gateX + 12, height * 0.54);
-    ctx.stroke();
-
-    ctx.strokeStyle = "rgba(33, 20, 13, 0.55)";
-    ctx.strokeRect(outputX - 25, height * 0.34, 50, height * 0.32);
-    ctx.beginPath();
-    ctx.moveTo(outputX - 14, height * 0.45);
-    ctx.lineTo(outputX + 15, height * 0.45);
-    ctx.moveTo(outputX - 14, height * 0.53);
-    ctx.lineTo(outputX + 8, height * 0.53);
-    ctx.stroke();
-
-    this.scene.packets.forEach((packet) => {
-      packet.progress = (packet.progress + packet.speed * 0.016 * speedScale) % 1;
-      let p = packet.progress;
-      const lane = packet.lane;
-      const startY = laneY[lane];
-      const providerY = laneY[(lane + 1) % laneY.length];
-      const queue = gateInfluence * ease(1 - Math.abs(p - 0.42) / 0.18);
-      p = Math.min(p, 0.44 + (p - 0.44) * (1 - queue * 0.8));
-      const x = lerp(width * 0.07, outputX + 20, p);
-      const merge = ease(clamp((p - 0.24) / 0.24, 0, 1));
-      const split = ease(clamp((p - 0.48) / 0.28, 0, 1));
-      const y = lerp(lerp(startY, height * 0.48, merge), providerY, split);
-      const response = ease(clamp((p - 0.68) / 0.25, 0, 1));
-      const drawY = lerp(y, height * 0.5, response * 0.65);
-      const alpha = 0.45 + Math.sin(time * 2 + packet.phase) * 0.08;
-
-      ctx.strokeStyle = packet.kind === "car"
-        ? `rgba(33, 20, 13, ${alpha})`
-        : `rgba(216, 170, 104, ${alpha + 0.12})`;
-      ctx.lineWidth = packet.kind === "car" ? 2 : 3;
-      ctx.beginPath();
-      if (packet.kind === "car") {
-        ctx.moveTo(x - 9, drawY + 3);
-        ctx.lineTo(x - 5, drawY - 3);
-        ctx.lineTo(x + 7, drawY - 3);
-        ctx.lineTo(x + 10, drawY + 3);
-      } else {
-        ctx.moveTo(x - 10, drawY);
-        ctx.lineTo(x + 10, drawY);
-      }
-      ctx.stroke();
-    });
-
-    if (gateInfluence > 0.05) {
-      const glow = ctx.createRadialGradient(gateX, height * 0.48, 0, gateX, height * 0.48, 130);
-      glow.addColorStop(0, `rgba(216, 170, 104, ${0.28 * gateInfluence})`);
-      glow.addColorStop(1, "rgba(216, 170, 104, 0)");
+    const gateGlow = pointerActive
+      ? ease(1 - Math.hypot(this.pointer.x - inspectionX, this.pointer.y - this.height * 0.5) / 190) * this.pointer.strength
+      : 0;
+    if (gateGlow > 0.02) {
+      const glow = ctx.createRadialGradient(inspectionX, this.height * 0.5, 0, inspectionX, this.height * 0.5, 130);
+      glow.addColorStop(0, `rgba(210, 161, 95, ${0.14 * gateGlow})`);
+      glow.addColorStop(1, "rgba(210, 161, 95, 0)");
       ctx.fillStyle = glow;
-      ctx.fillRect(gateX - 130, height * 0.48 - 130, 260, 260);
+      ctx.fillRect(inspectionX - 130, this.height * 0.5 - 130, 260, 260);
     }
+
+    ctx.strokeStyle = "rgba(45, 27, 18, 0.2)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(roadStart, roadTop);
+    ctx.lineTo(roadEnd, roadTop);
+    ctx.moveTo(roadStart, roadBottom);
+    ctx.lineTo(roadEnd, roadBottom);
+    ctx.stroke();
+
+    for (let boundary = 1; boundary < this.scene.lanes; boundary += 1) {
+      const y = (this.laneY(boundary - 1) + this.laneY(boundary)) / 2;
+      ctx.strokeStyle = "rgba(210, 161, 95, 0.23)";
+      ctx.lineWidth = 1.1;
+      ctx.setLineDash([13, 17]);
+      ctx.beginPath();
+      ctx.moveTo(roadStart + 18, y);
+      ctx.lineTo(roadEnd - 18, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    for (let lane = 0; lane < this.scene.lanes; lane += 1) {
+      const y = this.laneY(lane);
+      ctx.strokeStyle = "rgba(123, 71, 41, 0.075)";
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(roadStart, y);
+      ctx.lineTo(roadEnd, y);
+      ctx.stroke();
+    }
+
+    const byLane = Array.from({ length: this.scene.lanes }, () => []);
+    this.scene.vehicles.forEach((vehicle) => byLane[vehicle.lane].push(vehicle));
+    byLane.forEach((laneVehicles) => laneVehicles.sort((a, b) => a.progress - b.progress));
+
+    this.scene.vehicles.forEach((vehicle) => {
+      const current = this.motorLanePosition(vehicle.lane, vehicle.progress);
+      const laneDistance = pointerActive ? Math.abs(this.pointer.y - current.y) : 9999;
+      const xDistance = pointerActive ? Math.abs(this.pointer.x - current.x) : 9999;
+      const localSlow = pointerActive ? ease(1 - Math.hypot(xDistance, laneDistance * 1.7) / 155) : 0;
+      const laneVehicles = byLane[vehicle.lane];
+      const index = laneVehicles.indexOf(vehicle);
+      const ahead = laneVehicles[(index + 1) % laneVehicles.length];
+      let spacingSlow = 0;
+      if (ahead && ahead !== vehicle) {
+        const gap = ahead.progress > vehicle.progress
+          ? ahead.progress - vehicle.progress
+          : ahead.progress + 1 - vehicle.progress;
+        spacingSlow = ease(1 - gap / 0.055) * 0.35;
+      }
+      const target = clamp(1 - localSlow * 0.88 - spacingSlow, 0.08, 1.08);
+      vehicle.targetSpeed += (target - vehicle.targetSpeed) * 0.12;
+      vehicle.progress = (vehicle.progress + vehicle.speed * vehicle.targetSpeed * dt) % 1;
+      vehicle.gapPush += (localSlow - vehicle.gapPush) * 0.1;
+
+      const point = this.motorLanePosition(vehicle.lane, vehicle.progress - vehicle.gapPush * 0.006);
+      ctx.save();
+      ctx.translate(point.x, point.y);
+      const carWidth = vehicle.length;
+      const carHeight = Math.min(8, laneGap * 0.18);
+      ctx.fillStyle = vehicle.tone === 2
+        ? "rgba(180, 204, 208, 0.46)"
+        : vehicle.tone === 1
+        ? "rgba(157, 91, 50, 0.68)"
+        : "rgba(45, 27, 18, 0.56)";
+      ctx.beginPath();
+      ctx.roundRect(-carWidth * 0.5, -carHeight * 0.5, carWidth, carHeight, 2.5);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255, 248, 238, 0.38)";
+      ctx.fillRect(-carWidth * 0.2, -carHeight * 0.5, carWidth * 0.16, carHeight);
+      ctx.restore();
+    });
     ctx.restore();
+  }
+
+  spawnSupplement(time) {
+    if (!this.pointer.active || !this.scene || time - this.scene.lastSpawn < 0.13) {
+      return;
+    }
+    this.scene.lastSpawn = time;
+    const types = ["capsule", "tablet", "bottle", "doc", "shield", "warning", "check", "lab", "product", "profile"];
+    const index = Math.floor((time * 17 + this.pointer.x * 0.03 + this.pointer.y * 0.02) % types.length);
+    const angle = time * 2.1 + index * 0.7;
+    this.scene.symbols.push({
+      type: types[index],
+      x: this.pointer.x + Math.cos(angle) * 24,
+      y: this.pointer.y + Math.sin(angle) * 18,
+      born: time,
+      life: 1.9 + (index % 4) * 0.34,
+      lane: index % 4,
+      phase: angle,
+    });
+    if (this.scene.symbols.length > 34) {
+      this.scene.symbols.shift();
+    }
   }
 
   drawSupplement(ctx, time) {
-    const { width, height } = this;
-    const gateX = width * 0.5;
-    const laneY = [height * 0.34, height * 0.5, height * 0.66];
-    const gateInfluence = this.pointer.active
-      ? ease(1 - Math.hypot(this.pointer.x - gateX, this.pointer.y - height * 0.5) / 230)
-      : 0;
-    const align = Math.max(gateInfluence, this.pointer.active ? 0.42 : 0);
-
+    this.spawnSupplement(time);
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    ctx.strokeStyle = "rgba(45, 27, 18, 0.28)";
-    ctx.lineWidth = 1.2;
-    laneY.forEach((y, index) => {
-      ctx.setLineDash(index === 1 ? [] : [6, 12]);
+    this.scene.idle.forEach((item) => {
+      const x = item.x * this.width + Math.sin(time * 0.18 * item.drift + item.phase) * 12;
+      const y = item.y * this.height + Math.cos(time * 0.16 * item.drift + item.phase) * 9;
+      const focus = this.pointer.active
+        ? ease(1 - Math.hypot(this.pointer.x - x, this.pointer.y - y) / 150) * this.pointer.strength
+        : 0;
+      const towardX = lerp(x, this.pointer.x, focus * 0.08);
+      const towardY = lerp(y, this.pointer.y, focus * 0.08);
+      this.drawSupplementSymbol(ctx, item.type, towardX, towardY, 0.08 + focus * 0.18, item.size + focus * 0.12, item.phase * 0.16);
+    });
+
+    if (this.pointer.strength > 0.035) {
+      const x = this.pointer.x;
+      const y = this.pointer.y;
+      const alpha = this.pointer.strength;
+      ctx.strokeStyle = `rgba(157, 91, 50, ${0.15 * alpha})`;
+      ctx.lineWidth = 1.15;
       ctx.beginPath();
-      ctx.moveTo(width * 0.08, y);
-      ctx.bezierCurveTo(width * 0.28, y, gateX - 46, height * 0.5, gateX, height * 0.5);
-      ctx.bezierCurveTo(gateX + 42, height * 0.5, width * 0.7, y, width * 0.92, y);
+      ctx.arc(x, y, 82, -1.2, 1.05);
+      ctx.arc(x, y, 116, 2.15, 4.05);
       ctx.stroke();
-    });
-    ctx.setLineDash([]);
+      ctx.strokeStyle = `rgba(180, 204, 208, ${0.12 * alpha})`;
+      ctx.setLineDash([3, 9]);
+      ctx.beginPath();
+      ctx.moveTo(x - 106, y + 88);
+      ctx.quadraticCurveTo(x - 12, y + 116, x + 102, y + 84);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      this.drawSupplementSymbol(ctx, "shield", x - 42, y - 40, 0.22 * alpha, 0.78, 0);
+    }
 
-    ctx.strokeStyle = `rgba(163, 95, 52, ${0.44 + align * 0.28})`;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(gateX - 24, height * 0.24, 48, height * 0.54);
-    ctx.beginPath();
-    ctx.moveTo(gateX - 9, height * 0.42);
-    ctx.lineTo(gateX + 9, height * 0.42);
-    ctx.moveTo(gateX - 9, height * 0.58);
-    ctx.lineTo(gateX + 9, height * 0.58);
-    ctx.stroke();
-
-    ctx.strokeStyle = "rgba(124, 71, 40, 0.28)";
-    ctx.beginPath();
-    ctx.moveTo(width * 0.14, height * 0.82);
-    ctx.lineTo(width * 0.86, height * 0.82);
-    ctx.stroke();
-
-    this.scene.items.forEach((item) => {
-      item.progress = (item.progress + item.speed * 0.014) % 1;
-      const lane = laneY[item.lane];
-      const looseX = item.x * width + Math.sin(time * 0.5 + item.phase) * 22;
-      const looseY = item.y * height + Math.cos(time * 0.42 + item.phase) * 18;
-      const laneX = lerp(width * 0.08, width * 0.9, item.progress);
-      const outputLane =
-        item.type === "warning" ? laneY[2] : item.type === "doc" || item.type === "lab" ? laneY[1] : laneY[0];
-      let y = lerp(lane, outputLane, ease(clamp((item.progress - 0.52) / 0.32, 0, 1)));
-      let x = laneX;
-
-      if (item.type === "warning" && item.progress > 0.48 && item.progress < 0.62) {
-        x = Math.min(x, gateX - 35);
+    this.scene.symbols = this.scene.symbols.filter((symbol) => time - symbol.born < symbol.life);
+    this.scene.symbols.forEach((symbol) => {
+      const age = time - symbol.born;
+      const progress = clamp(age / symbol.life, 0, 1);
+      const fade = Math.sin(progress * Math.PI);
+      const orbit = symbol.phase + progress * Math.PI * 1.15;
+      const radius = 24 + symbol.lane * 14;
+      let targetX = symbol.x + Math.cos(orbit) * radius;
+      let targetY = symbol.y + Math.sin(orbit) * radius * 0.62;
+      if (progress > 0.28) {
+        const route = this.supplementRoute(symbol.type, symbol.x, symbol.y);
+        const mix = ease((progress - 0.28) / 0.72);
+        targetX = lerp(targetX, route.x, mix);
+        targetY = lerp(targetY, route.y, mix);
       }
-      if (item.type === "product") {
-        x = lerp(width * 0.22, width * 0.82, item.progress);
-        y = height * 0.82 + Math.sin(time + item.phase) * 4;
-      }
-
-      const drawX = lerp(looseX, x, align);
-      const drawY = lerp(looseY, y, align);
-      this.drawSupplementSymbol(ctx, item.type, drawX, drawY, 0.55 + align * 0.38);
+      this.drawSupplementSymbol(ctx, symbol.type, targetX, targetY, 0.58 * fade, 0.88 + fade * 0.16, orbit * 0.12);
     });
-
     ctx.restore();
   }
 
-  drawSupplementSymbol(ctx, type, x, y, alpha) {
+  supplementRoute(type, x, y) {
+    if (type === "warning") {
+      return { x: x - 94, y: y + 46 };
+    }
+    if (type === "doc" || type === "lab") {
+      return { x: x + 76, y: y - 44 };
+    }
+    if (type === "product") {
+      return { x: x + 70, y: y + 92 };
+    }
+    if (type === "shield" || type === "profile") {
+      return { x: x - 30, y: y - 72 };
+    }
+    if (type === "check") {
+      return { x: x + 96, y: y + 8 };
+    }
+    return { x: x + 54, y: y + 18 };
+  }
+
+  drawSupplementSymbol(ctx, type, x, y, alpha, scale = 1, angle = 0) {
     ctx.save();
     ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
     ctx.strokeStyle =
       type === "warning"
-        ? `rgba(124, 71, 40, ${alpha})`
+        ? `rgba(146, 90, 53, ${alpha})`
         : type === "product"
-        ? `rgba(154, 133, 112, ${alpha * 0.72})`
-        : `rgba(163, 95, 52, ${alpha})`;
-    ctx.fillStyle = `rgba(255, 250, 242, ${alpha * 0.14})`;
-    ctx.lineWidth = 1.7;
+        ? `rgba(103, 84, 71, ${alpha * 0.58})`
+        : type === "check" || type === "shield"
+        ? `rgba(157, 91, 50, ${alpha})`
+        : type === "lab" || type === "profile"
+        ? `rgba(180, 204, 208, ${alpha * 0.78})`
+        : `rgba(123, 71, 41, ${alpha})`;
+    ctx.lineWidth = 1.55;
     if (type === "capsule") {
       ctx.rotate(-0.72);
       ctx.beginPath();
-      ctx.roundRect(-14, -6, 28, 12, 6);
+      ctx.ellipse(-7, 0, 8, 5.5, 0, Math.PI * 0.5, Math.PI * 1.5);
+      ctx.ellipse(7, 0, 8, 5.5, 0, Math.PI * 1.5, Math.PI * 0.5);
+      ctx.closePath();
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(0, -6);
-      ctx.lineTo(0, 6);
+      ctx.moveTo(0, -5.5);
+      ctx.lineTo(0, 5.5);
       ctx.stroke();
-    } else if (type === "doc") {
-      ctx.strokeRect(-10, -13, 20, 26);
+    } else if (type === "tablet") {
       ctx.beginPath();
-      ctx.moveTo(-5, -4);
-      ctx.lineTo(6, -4);
-      ctx.moveTo(-5, 4);
-      ctx.lineTo(3, 4);
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.moveTo(-6, 0);
+      ctx.lineTo(6, 0);
+      ctx.stroke();
+    } else if (type === "bottle") {
+      ctx.beginPath();
+      ctx.moveTo(-5, -14);
+      ctx.lineTo(5, -14);
+      ctx.moveTo(-3, -14);
+      ctx.lineTo(-3, -8);
+      ctx.lineTo(-8, -2);
+      ctx.lineTo(-8, 12);
+      ctx.lineTo(8, 12);
+      ctx.lineTo(8, -2);
+      ctx.lineTo(3, -8);
+      ctx.lineTo(3, -14);
+      ctx.moveTo(-5, 2);
+      ctx.lineTo(5, 2);
+      ctx.stroke();
+    } else if (type === "doc" || type === "product") {
+      ctx.beginPath();
+      ctx.moveTo(-8, -12);
+      ctx.lineTo(6, -12);
+      ctx.lineTo(10, -8);
+      ctx.lineTo(10, 12);
+      ctx.lineTo(-8, 12);
+      ctx.closePath();
+      ctx.moveTo(6, -12);
+      ctx.lineTo(6, -8);
+      ctx.lineTo(10, -8);
+      ctx.moveTo(-4, -2);
+      ctx.lineTo(5, -2);
+      ctx.moveTo(-4, 5);
+      ctx.lineTo(3, 5);
       ctx.stroke();
     } else if (type === "shield") {
       ctx.beginPath();
-      ctx.moveTo(0, -15);
-      ctx.lineTo(13, -9);
-      ctx.lineTo(10, 10);
-      ctx.lineTo(0, 15);
-      ctx.lineTo(-10, 10);
-      ctx.lineTo(-13, -9);
+      ctx.moveTo(0, -14);
+      ctx.lineTo(11, -8);
+      ctx.lineTo(8, 9);
+      ctx.lineTo(0, 14);
+      ctx.lineTo(-8, 9);
+      ctx.lineTo(-11, -8);
       ctx.closePath();
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-5, 0);
-      ctx.lineTo(-1, 5);
-      ctx.lineTo(7, -5);
       ctx.stroke();
     } else if (type === "warning") {
       ctx.beginPath();
-      ctx.moveTo(0, -14);
-      ctx.lineTo(14, 12);
-      ctx.lineTo(-14, 12);
+      ctx.moveTo(0, -13);
+      ctx.lineTo(13, 11);
+      ctx.lineTo(-13, 11);
       ctx.closePath();
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(0, -4);
+      ctx.moveTo(0, -3);
       ctx.lineTo(0, 4);
-      ctx.moveTo(0, 9);
-      ctx.lineTo(0.01, 9);
+      ctx.moveTo(0, 8);
+      ctx.lineTo(0.01, 8);
       ctx.stroke();
     } else if (type === "lab") {
       ctx.beginPath();
-      ctx.moveTo(-6, -12);
-      ctx.lineTo(6, -12);
+      ctx.moveTo(-5, -12);
+      ctx.lineTo(5, -12);
       ctx.moveTo(-2, -12);
-      ctx.lineTo(-2, 2);
-      ctx.lineTo(-10, 14);
-      ctx.lineTo(10, 14);
-      ctx.lineTo(2, 2);
+      ctx.lineTo(-2, 1);
+      ctx.lineTo(-9, 13);
+      ctx.lineTo(9, 13);
+      ctx.lineTo(2, 1);
       ctx.lineTo(2, -12);
+      ctx.moveTo(-5, 6);
+      ctx.lineTo(5, 6);
+      ctx.stroke();
+    } else if (type === "profile") {
+      ctx.beginPath();
+      ctx.arc(0, -5, 4.5, 0, Math.PI * 2);
+      ctx.moveTo(-9, 11);
+      ctx.quadraticCurveTo(0, 2, 9, 11);
       ctx.stroke();
     } else {
-      ctx.strokeRect(-12, -9, 24, 18);
       ctx.beginPath();
-      ctx.moveTo(-7, -2);
-      ctx.lineTo(7, -2);
-      ctx.moveTo(-7, 4);
-      ctx.lineTo(3, 4);
+      ctx.moveTo(-10, 0);
+      ctx.lineTo(-3, 7);
+      ctx.lineTo(11, -8);
       ctx.stroke();
     }
     ctx.restore();
@@ -1348,8 +2538,20 @@ class FeaturedDrawerController {
     this.drawerStage.replaceChildren(template.content.cloneNode(true));
     this.drawerTitle.textContent = meta.title;
     this.drawerKicker.textContent = meta.category;
-    this.projectVisual?.setMode(meta.mode, template.dataset.note);
+    this.projectVisual?.setMode(meta.mode);
     return true;
+  }
+
+  scrollStageIntoView() {
+    if (!this.drawer) {
+      return;
+    }
+    const offset = 86;
+    const target = this.drawer.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({
+      top: Math.max(0, target),
+      behavior: reducedMotionQuery.matches ? "auto" : "smooth",
+    });
   }
 
   open(projectId, options = {}) {
@@ -1371,8 +2573,16 @@ class FeaturedDrawerController {
     this.drawer.hidden = false;
     window.requestAnimationFrame(() => {
       this.drawer.classList.add("is-open");
+      this.drawer.classList.add("is-activating");
       this.projectVisual?.resize();
       this.projectVisual?.syncLoop();
+      if (options.scrollToStage !== false) {
+        this.scrollStageIntoView();
+      }
+      window.setTimeout(() => {
+        this.drawer?.classList.remove("is-activating");
+        this.drawerTitle?.focus({ preventScroll: true });
+      }, reducedMotionQuery.matches ? 0 : 320);
     });
     if (options.updateHash !== false) {
       window.history.replaceState(null, "", `#${projectId}`);
@@ -1538,7 +2748,6 @@ const cursor = new CursorController(
 const heroField = new HeroFieldController(document.querySelector("[data-hero-field]"), motion);
 const projectVisual = new ProjectVisualController(
   document.querySelector("[data-project-visual]"),
-  document.querySelector("[data-project-note]"),
   motion
 );
 
