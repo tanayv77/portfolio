@@ -1,4 +1,4 @@
-const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+﻿const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
 
 const modeAlias = {
@@ -256,50 +256,649 @@ class SpotlightController {
   }
 }
 
-class RibbonController {
+const RIBBON_GLYPHS = (() => {
+  const P = (...pts) => ({ kind: "poly", pts });
+  const A = (cx, cy, r, a0, a1) => ({ kind: "arc", cx, cy, r, a0, a1 });
+  const E = (cx, cy, rx, ry, a0, a1) => ({ kind: "ellipse", cx, cy, rx, ry, a0, a1 });
+  const TAU = Math.PI * 2;
+  const glyphs = [
+    {
+      name: "neuron",
+      segs: [
+        A(-0.34, 0.04, 0.17, 0, TAU),
+        P([-0.46, -0.06], [-0.64, -0.26], [-0.78, -0.5]),
+        P([-0.48, 0.13], [-0.68, 0.27], [-0.84, 0.46]),
+        P([-0.36, -0.12], [-0.32, -0.4], [-0.44, -0.64]),
+        P([-0.17, 0.03], [0.24, -0.01], [0.56, -0.08]),
+        P([0.56, -0.08], [0.74, 0.14]),
+        Object.assign(A(0.64, -0.14, 0.06, 0, TAU), { tone: "gold" }),
+      ],
+    },
+    {
+      name: "ray",
+      segs: [
+        P([-0.84, -0.2], [-0.36, -0.18], [0.02, -0.32], [0.48, -0.44], [0.84, -0.48]),
+        P([-0.84, 0.14], [-0.3, 0.12], [0.08, 0.28], [0.52, 0.42], [0.84, 0.48]),
+        A(0.08, -0.02, 0.15, 0, TAU),
+        Object.assign(A(0.08, -0.02, 0.27, -2.4, -0.7), { tone: "signal" }),
+      ],
+    },
+    {
+      name: "lanes",
+      segs: [
+        P([-0.78, -0.3], [0.78, -0.3]),
+        P([-0.78, 0.02], [0.78, 0.02]),
+        P([-0.78, 0.34], [0.78, 0.34]),
+        P([0.36, -0.44], [0.36, 0.48]),
+        Object.assign(P([-0.48, -0.14], [-0.18, -0.14]), { tone: "gold", w: 1.7 }),
+      ],
+    },
+    {
+      name: "capsule",
+      segs: [
+        A(-0.28, 0, 0.3, Math.PI * 0.5, Math.PI * 1.5),
+        A(0.28, 0, 0.3, Math.PI * 1.5, Math.PI * 2.5),
+        P([-0.28, -0.3], [0.28, -0.3]),
+        P([-0.28, 0.3], [0.28, 0.3]),
+        P([0, -0.3], [0, 0.3]),
+      ],
+    },
+    {
+      name: "shield",
+      segs: [
+        P([0, -0.54], [0.44, -0.36], [0.38, 0.22], [0, 0.54], [-0.38, 0.22], [-0.44, -0.36], [0, -0.54]),
+        Object.assign(P([-0.18, 0], [-0.04, 0.16], [0.24, -0.18]), { tone: "signal" }),
+      ],
+    },
+    {
+      name: "doc",
+      segs: [
+        P([-0.34, -0.5], [0.12, -0.5], [0.36, -0.26], [0.36, 0.5], [-0.34, 0.5], [-0.34, -0.5]),
+        P([0.12, -0.5], [0.12, -0.26], [0.36, -0.26]),
+        P([-0.18, -0.04], [0.2, -0.04]),
+        P([-0.18, 0.16], [0.1, 0.16]),
+      ],
+    },
+    {
+      name: "api",
+      segs: [
+        P([-0.26, -0.42], [-0.56, 0], [-0.26, 0.42]),
+        P([0.26, -0.42], [0.56, 0], [0.26, 0.42]),
+        P([0.1, -0.38], [-0.1, 0.38]),
+      ],
+    },
+    {
+      name: "report",
+      segs: [
+        P([-0.4, -0.52], [0.4, -0.52], [0.4, 0.52], [-0.4, 0.52], [-0.4, -0.52]),
+        Object.assign(P([-0.22, -0.16], [-0.1, -0.04], [0.18, -0.34]), { tone: "signal" }),
+        P([-0.22, 0.14], [0.24, 0.14]),
+        P([-0.22, 0.32], [0.08, 0.32]),
+      ],
+    },
+    {
+      name: "terminal",
+      segs: [
+        P([-0.55, -0.4], [0.55, -0.4], [0.55, 0.4], [-0.55, 0.4], [-0.55, -0.4]),
+        P([-0.34, -0.12], [-0.14, 0.04], [-0.34, 0.2]),
+        P([-0.02, 0.2], [0.3, 0.2]),
+      ],
+    },
+    {
+      name: "graph",
+      segs: [
+        A(-0.44, 0.28, 0.13, 0, TAU),
+        A(0.04, -0.36, 0.13, 0, TAU),
+        A(0.48, 0.24, 0.13, 0, TAU),
+        P([-0.36, 0.18], [-0.04, -0.26]),
+        P([0.13, -0.26], [0.4, 0.14]),
+        P([-0.31, 0.28], [0.35, 0.25]),
+      ],
+    },
+    {
+      name: "database",
+      segs: [
+        E(0, -0.36, 0.4, 0.14, 0, TAU),
+        P([-0.4, -0.36], [-0.4, 0.36]),
+        P([0.4, -0.36], [0.4, 0.36]),
+        E(0, 0.36, 0.4, 0.14, 0, Math.PI),
+        E(0, 0, 0.4, 0.14, 0, Math.PI),
+      ],
+    },
+  ];
+  glyphs.forEach((glyph) => {
+    glyph.segs.forEach((seg) => {
+      if (seg.kind === "poly") {
+        let total = 0;
+        for (let i = 1; i < seg.pts.length; i += 1) {
+          total += Math.hypot(seg.pts[i][0] - seg.pts[i - 1][0], seg.pts[i][1] - seg.pts[i - 1][1]);
+        }
+        seg.length = total;
+      }
+    });
+  });
+  return glyphs;
+})();
+
+class GlyphRibbonController {
+  constructor(root, motion) {
+    this.root = root;
+    this.canvas = root?.querySelector("canvas") || null;
+    this.ctx = null;
+    this.motion = motion;
+    this.width = 1;
+    this.height = 1;
+    this.dpr = 1;
+    this.frame = 0;
+    this.lastTime = 0;
+    this.inView = false;
+    this.pointer = { x: 0, y: 0, active: false, strength: 0 };
+    this.layers = [];
+
+    if (!this.root || !this.canvas) {
+      return;
+    }
+    this.ctx = this.canvas.getContext("2d");
+    this.draw = this.draw.bind(this);
+    this.resize = this.resize.bind(this);
+    this.setupEvents();
+    this.resize();
+    this.observe();
+    this.motion.onChange(() => {
+      this.resize();
+      this.syncLoop();
+    });
+    window.addEventListener("resize", this.resize);
+    document.addEventListener("visibilitychange", () => this.syncLoop());
+    window.requestAnimationFrame(() => this.root.classList.add("is-ready"));
+  }
+
+  setupEvents() {
+    this.root.addEventListener(
+      "pointermove",
+      (event) => {
+        if (event.pointerType === "touch" || this.motion.reduced) {
+          return;
+        }
+        const rect = this.canvas.getBoundingClientRect();
+        this.pointer.x = event.clientX - rect.left;
+        this.pointer.y = event.clientY - rect.top;
+        this.pointer.active = true;
+      },
+      { passive: true }
+    );
+    this.root.addEventListener("pointerleave", () => {
+      this.pointer.active = false;
+    });
+  }
+
+  observe() {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        this.inView = entries.some((entry) => entry.isIntersecting);
+        this.syncLoop();
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(this.root);
+  }
+
+  resize() {
+    if (!this.ctx) {
+      return;
+    }
+    const rect = this.canvas.getBoundingClientRect();
+    this.width = Math.max(1, Math.round(rect.width));
+    this.height = Math.max(1, Math.round(rect.height));
+    this.dpr = clamp(window.devicePixelRatio || 1, 1, 1.75);
+    this.canvas.width = Math.round(this.width * this.dpr);
+    this.canvas.height = Math.round(this.height * this.dpr);
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.buildLayers();
+    this.renderStatic();
+    this.syncLoop();
+  }
+
+  buildLayers() {
+    const rand = mulberry32(hashSeed(`ribbon-${this.width}-${this.height}`));
+    const makeLayer = (config) => {
+      const spacing = clamp(this.width / config.density, config.minSpacing, config.maxSpacing);
+      const count = Math.ceil((this.width + spacing * 2) / spacing) + 1;
+      const span = count * spacing;
+      const items = Array.from({ length: count }, (_, index) => ({
+        x: -spacing + index * spacing + (rand() - 0.5) * spacing * 0.24,
+        glyph: RIBBON_GLYPHS[(index * 3 + config.offset) % RIBBON_GLYPHS.length],
+        phase: rand() * Math.PI * 2,
+        assembly: 0.35 + rand() * 0.3,
+      }));
+      return Object.assign({}, config, { spacing, span, items });
+    };
+    this.layers = [
+      makeLayer({
+        density: 8.6,
+        minSpacing: 128,
+        maxSpacing: 215,
+        offset: 4,
+        speed: 12,
+        size: this.height * 0.15,
+        baseY: this.height * 0.3,
+        amp: this.height * 0.05,
+        alpha: 0.32,
+        lineWidth: 1.35,
+      }),
+      makeLayer({
+        density: 7,
+        minSpacing: 156,
+        maxSpacing: 264,
+        offset: 0,
+        speed: -20,
+        size: this.height * 0.27,
+        baseY: this.height * 0.6,
+        amp: this.height * 0.085,
+        alpha: 0.94,
+        lineWidth: 2.05,
+      }),
+    ];
+  }
+
+  shouldAnimate() {
+    return !this.motion.reduced && this.inView && !document.hidden && this.layers.length > 0;
+  }
+
+  syncLoop() {
+    if (this.shouldAnimate()) {
+      if (!this.frame) {
+        this.lastTime = 0;
+        this.frame = window.requestAnimationFrame(this.draw);
+      }
+      return;
+    }
+    if (this.frame) {
+      window.cancelAnimationFrame(this.frame);
+      this.frame = 0;
+    }
+    this.renderStatic();
+  }
+
+  renderStatic() {
+    if (!this.ctx) {
+      return;
+    }
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.layers.forEach((layer) => {
+      layer.items.forEach((item) => {
+        const y = layer.baseY + Math.sin(item.x * 0.0042 + item.phase) * layer.amp;
+        this.drawGlyph(this.ctx, item.glyph, item.x, y, layer.size, 0, 1, layer.alpha, layer.lineWidth);
+      });
+    });
+  }
+
+  draw(timeStamp = 0) {
+    if (!this.ctx) {
+      return;
+    }
+    const time = timeStamp * 0.001;
+    const dt = this.lastTime ? clamp(time - this.lastTime, 0.001, 0.05) : 0.016;
+    this.lastTime = time;
+    this.pointer.strength += ((this.pointer.active ? 1 : 0) - this.pointer.strength) * 0.07;
+
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.width, this.height);
+
+    this.layers.forEach((layer) => {
+      layer.items.forEach((item) => {
+        item.x += layer.speed * dt;
+        if (layer.speed < 0 && item.x < -layer.spacing) {
+          item.x += layer.span;
+        } else if (layer.speed > 0 && item.x > this.width + layer.spacing) {
+          item.x -= layer.span;
+        }
+        const wavePhase = item.x * 0.0042 + time * 0.5 + item.phase;
+        const y = layer.baseY + Math.sin(wavePhase) * layer.amp;
+        const boost =
+          this.pointer.strength > 0.01
+            ? ease(1 - Math.hypot(this.pointer.x - item.x, (this.pointer.y - y) * 1.3) / 250) *
+              this.pointer.strength *
+              1.25
+            : 0;
+        const alignWave = 0.5 + 0.5 * Math.sin(time * 0.4 - item.x * 0.0052 + item.phase * 0.6);
+        const target = clamp(0.26 + alignWave * 0.52 + boost, 0, 1);
+        item.assembly = lerp(item.assembly, target, 0.065);
+        const tilt = Math.cos(wavePhase) * 0.12 * (1 - item.assembly * 0.72);
+        this.drawGlyph(ctx, item.glyph, item.x, y, layer.size, tilt, item.assembly, layer.alpha, layer.lineWidth);
+      });
+    });
+
+    if (this.frame) {
+      this.frame = window.requestAnimationFrame(this.draw);
+    }
+  }
+
+  drawGlyph(ctx, glyph, x, y, size, tilt, assembly, alpha, lineWidth) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+    ctx.scale(size, size);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    const ghost = 1 - assembly;
+    if (ghost > 0.05) {
+      ctx.save();
+      ctx.rotate(ghost * 0.14);
+      ctx.translate(ghost * 0.18, ghost * -0.14);
+      ctx.lineWidth = lineWidth / size;
+      ctx.strokeStyle = `rgba(156, 81, 38, ${alpha * ghost * 0.26})`;
+      for (let i = 0; i < glyph.segs.length; i += 1) {
+        this.traceSeg(ctx, glyph.segs[i], 1);
+      }
+      ctx.restore();
+    }
+
+    for (let i = 0; i < glyph.segs.length; i += 1) {
+      const seg = glyph.segs[i];
+      const fraction = clamp(assembly * 1.5 - i * 0.1, 0.16, 1);
+      const segAlpha = alpha * (0.3 + 0.7 * fraction) * (0.42 + assembly * 0.58);
+      ctx.lineWidth = ((seg.w || 1) * lineWidth) / size;
+      ctx.strokeStyle =
+        seg.tone === "gold"
+          ? `rgba(202, 146, 80, ${segAlpha})`
+          : seg.tone === "signal"
+          ? `rgba(111, 147, 155, ${segAlpha})`
+          : `rgba(111, 58, 26, ${segAlpha})`;
+      this.traceSeg(ctx, seg, fraction);
+    }
+
+    if (assembly > 0.9) {
+      ctx.fillStyle = `rgba(210, 162, 95, ${(assembly - 0.9) * 7 * alpha})`;
+      ctx.beginPath();
+      ctx.arc(0, 0.78, 0.04, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  traceSeg(ctx, seg, fraction) {
+    const f = clamp(fraction, 0, 1);
+    if (f <= 0.01) {
+      return;
+    }
+    if (seg.kind === "arc") {
+      ctx.beginPath();
+      ctx.arc(seg.cx, seg.cy, seg.r, seg.a0, seg.a0 + (seg.a1 - seg.a0) * f);
+      ctx.stroke();
+      return;
+    }
+    if (seg.kind === "ellipse") {
+      ctx.beginPath();
+      ctx.ellipse(seg.cx, seg.cy, seg.rx, seg.ry, 0, seg.a0, seg.a0 + (seg.a1 - seg.a0) * f);
+      ctx.stroke();
+      return;
+    }
+    const pts = seg.pts;
+    let remaining = seg.length * f;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length && remaining > 0; i += 1) {
+      const dx = pts[i][0] - pts[i - 1][0];
+      const dy = pts[i][1] - pts[i - 1][1];
+      const len = Math.hypot(dx, dy);
+      if (len <= remaining) {
+        ctx.lineTo(pts[i][0], pts[i][1]);
+        remaining -= len;
+      } else {
+        const t = remaining / len;
+        ctx.lineTo(pts[i - 1][0] + dx * t, pts[i - 1][1] + dy * t);
+        remaining = 0;
+      }
+    }
+    ctx.stroke();
+  }
+}
+
+class PageTraceController {
   constructor(root, motion) {
     this.root = root;
     this.motion = motion;
     if (!this.root) {
       return;
     }
-    this.prepareSymbols();
-    this.root.addEventListener("pointerenter", () => {
-      if (!this.motion.reduced) {
-        this.root.classList.add("is-warm");
-      }
-    });
-    this.root.addEventListener("pointerleave", () => this.root.classList.remove("is-warm"));
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        this.root.classList.add("is-ready");
-      });
-    });
+    this.svg = root.querySelector("svg");
+    this.basePath = root.querySelector(".trace-base");
+    this.flowPath = root.querySelector(".trace-flow");
+    this.stationsGroup = root.querySelector(".trace-stations");
+    this.probe = root.querySelector(".trace-probe");
+    this.endpoint = root.querySelector(".trace-endpoint");
+    this.stations = [];
+    this.length = 0;
+    this.progress = 0;
+    this.target = 0;
+    this.frame = 0;
+    this.rebuildTimer = 0;
+    this.enabled = false;
+
+    this.tick = this.tick.bind(this);
+    this.queueRebuild = this.queueRebuild.bind(this);
+    this.onScroll = this.onScroll.bind(this);
+
+    window.addEventListener("resize", this.queueRebuild);
+    window.addEventListener("load", this.queueRebuild);
+    window.addEventListener("scroll", this.onScroll, { passive: true });
+    this.motion.onChange(() => this.queueRebuild());
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(() => this.queueRebuild());
+      observer.observe(document.body);
+    }
+    this.build();
+    this.onScroll();
   }
 
-  prepareSymbols() {
-    const symbols = Array.from(this.root.querySelectorAll(".ribbon-symbol"));
-    symbols.forEach((symbol, index) => {
-      const primary = symbol.querySelector("svg");
-      if (!primary || primary.classList.contains("ribbon-primary")) {
-        return;
+  queueRebuild() {
+    if (this.rebuildTimer) {
+      window.clearTimeout(this.rebuildTimer);
+    }
+    this.rebuildTimer = window.setTimeout(() => {
+      this.rebuildTimer = 0;
+      this.build();
+      this.onScroll();
+    }, 180);
+  }
+
+  docTop(element) {
+    return element.getBoundingClientRect().top + window.scrollY;
+  }
+
+  build() {
+    if (!this.svg || !this.flowPath || !this.basePath) {
+      return;
+    }
+    const width = document.documentElement.clientWidth;
+    this.enabled = width >= 1268;
+    if (!this.enabled) {
+      return;
+    }
+    const docHeight = document.documentElement.scrollHeight;
+    this.root.style.height = `${docHeight}px`;
+    this.svg.setAttribute("viewBox", `0 0 ${width} ${docHeight}`);
+    this.svg.setAttribute("width", String(width));
+    this.svg.setAttribute("height", String(docHeight));
+
+    const shellWidth = Math.min(width - 40, 1180);
+    const gutter = (width - shellWidth) / 2;
+    const leftX = Math.round(Math.max(26, gutter * 0.48));
+    const rightX = width - leftX;
+
+    const hero = document.querySelector(".hero");
+    const ribbon = document.querySelector(".symbol-ribbon");
+    const method = document.getElementById("method");
+    const work = document.getElementById("work");
+    const cards = Array.from(document.querySelectorAll(".featured-card"));
+    const more = document.getElementById("more-work");
+    const about = document.getElementById("about");
+    const contact = document.getElementById("contact");
+    if (!hero || !ribbon || !method || !work || !more || !about || !contact) {
+      return;
+    }
+
+    const points = [];
+    const stations = [];
+    const addPoint = (x, y, isStation) => {
+      points.push({ x: Math.round(x), y: Math.round(y) });
+      if (isStation) {
+        stations.push({ pointIndex: points.length - 1 });
       }
-      primary.classList.add("ribbon-primary");
-      const ghost = primary.cloneNode(true);
-      const echo = primary.cloneNode(true);
-      ghost.classList.remove("ribbon-primary");
-      echo.classList.remove("ribbon-primary");
-      ghost.classList.add("ribbon-ghost");
-      echo.classList.add("ribbon-echo");
-      ghost.setAttribute("aria-hidden", "true");
-      echo.setAttribute("aria-hidden", "true");
-      symbol.prepend(echo);
-      symbol.prepend(ghost);
-      const direction = index % 2 === 0 ? 1 : -1;
-      symbol.style.setProperty("--ghost-x", `${direction * (11 + (index % 4) * 3)}px`);
-      symbol.style.setProperty("--ghost-y", `${-10 + (index % 3) * 5}px`);
-      symbol.style.setProperty("--phase", symbol.style.getPropertyValue("--phase") || `${index * 0.34}s`);
+    };
+
+    const ribbonTop = this.docTop(ribbon);
+    const moreTop = this.docTop(more);
+    const aboutTop = this.docTop(about);
+    const contactTop = this.docTop(contact);
+
+    addPoint(rightX, this.docTop(hero) + hero.offsetHeight * 0.3, true);
+    addPoint(rightX, ribbonTop - 16, false);
+    addPoint(leftX, ribbonTop - 16, false);
+    addPoint(leftX, this.docTop(method) + method.offsetHeight * 0.55, true);
+    addPoint(leftX, this.docTop(work) + 104, true);
+    cards.forEach((card) => {
+      addPoint(leftX, this.docTop(card) + Math.min(card.offsetHeight * 0.5, 140), true);
     });
+    addPoint(leftX, moreTop - 24, false);
+    addPoint(rightX, moreTop - 24, false);
+    addPoint(rightX, moreTop + 112, true);
+    addPoint(rightX, aboutTop - 20, false);
+    addPoint(leftX, aboutTop - 20, false);
+    addPoint(leftX, aboutTop + 112, true);
+    addPoint(leftX, contactTop - 22, false);
+    addPoint(rightX, contactTop - 22, false);
+    addPoint(rightX, contactTop + 116, false);
+
+    const radius = 26;
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const next = points[i + 1];
+      if (!next) {
+        d += ` L ${curr.x} ${curr.y}`;
+        break;
+      }
+      const inDX = Math.sign(curr.x - prev.x);
+      const inDY = Math.sign(curr.y - prev.y);
+      const outDX = Math.sign(next.x - curr.x);
+      const outDY = Math.sign(next.y - curr.y);
+      if (inDX === outDX && inDY === outDY) {
+        d += ` L ${curr.x} ${curr.y}`;
+        continue;
+      }
+      const inLen = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+      const outLen = Math.hypot(next.x - curr.x, next.y - curr.y);
+      const r = Math.min(radius, inLen / 2, outLen / 2);
+      d += ` L ${curr.x - inDX * r} ${curr.y - inDY * r}`;
+      d += ` Q ${curr.x} ${curr.y} ${curr.x + outDX * r} ${curr.y + outDY * r}`;
+    }
+
+    const cumulative = [0];
+    for (let i = 1; i < points.length; i += 1) {
+      cumulative.push(
+        cumulative[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y)
+      );
+    }
+
+    this.basePath.setAttribute("d", d);
+    this.flowPath.setAttribute("d", d);
+    this.length = this.flowPath.getTotalLength();
+    const scale = this.length / Math.max(1, cumulative[cumulative.length - 1]);
+    this.flowPath.style.strokeDasharray = `${this.length}`;
+
+    this.stationsGroup.replaceChildren();
+    this.stations = stations.map((station) => {
+      const point = points[station.pointIndex];
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", String(point.x));
+      circle.setAttribute("cy", String(point.y));
+      circle.setAttribute("r", "3.2");
+      this.stationsGroup.append(circle);
+      return { length: cumulative[station.pointIndex] * scale, el: circle };
+    });
+
+    const last = points[points.length - 1];
+    this.startY = points[0].y;
+    this.endY = last.y;
+    this.endpoint.setAttribute("transform", `translate(${last.x} ${last.y})`);
+    this.apply();
+  }
+
+  lengthAtY(targetY) {
+    // The trace only moves down or sideways, so y is non-decreasing along it.
+    let low = 0;
+    let high = this.length;
+    for (let i = 0; i < 22; i += 1) {
+      const mid = (low + high) / 2;
+      if (this.flowPath.getPointAtLength(mid).y < targetY) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return (low + high) / 2;
+  }
+
+  onScroll() {
+    if (!this.enabled || !this.length) {
+      return;
+    }
+    const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const scrollProgress = clamp(window.scrollY / max, 0, 1);
+    const eyeY = clamp(window.scrollY + window.innerHeight * 0.58, this.startY, this.endY);
+    const targetY = lerp(eyeY, this.endY, ease((scrollProgress - 0.86) / 0.14));
+    this.target = clamp(this.lengthAtY(targetY) / this.length, 0, 1);
+    if (this.motion.reduced) {
+      this.progress = this.target;
+      this.apply();
+      return;
+    }
+    if (!this.frame) {
+      this.frame = window.requestAnimationFrame(this.tick);
+    }
+  }
+
+  tick() {
+    this.frame = 0;
+    this.progress = lerp(this.progress, this.target, 0.14);
+    if (Math.abs(this.progress - this.target) > 0.0008) {
+      this.frame = window.requestAnimationFrame(this.tick);
+    } else {
+      this.progress = this.target;
+    }
+    this.apply();
+  }
+
+  apply() {
+    if (!this.length) {
+      return;
+    }
+    const reduced = this.motion.reduced;
+    const distance = this.length * (reduced ? 1 : this.progress);
+    this.flowPath.style.strokeDashoffset = `${this.length - distance}`;
+    if (!reduced) {
+      let point = null;
+      try {
+        point = this.flowPath.getPointAtLength(distance);
+      } catch (error) {
+        point = null;
+      }
+      if (point) {
+        this.probe.setAttribute("transform", `translate(${point.x} ${point.y})`);
+        this.probe.style.opacity = "1";
+      }
+    } else {
+      this.probe.style.opacity = "0";
+    }
+    for (let i = 0; i < this.stations.length; i += 1) {
+      const station = this.stations[i];
+      station.el.classList.toggle("is-passed", distance >= station.length - 2);
+    }
+    this.root.classList.toggle("is-arrived", reduced || this.progress > 0.975);
   }
 }
 
@@ -342,16 +941,20 @@ class HeroFieldController {
   }
 
   setupEvents() {
-    this.root.addEventListener("pointerenter", (event) => {
-      if (event.pointerType !== "touch" && !this.motion.reduced) {
-        this.pointer.active = true;
-      }
-    });
-    this.root.addEventListener("pointermove", (event) => {
-      if (event.pointerType === "touch" || this.motion.reduced) {
+    const handleWindowMove = (event) => {
+      if (event.pointerType === "touch" || this.motion.reduced || !this.inView) {
         return;
       }
       const rect = this.root.getBoundingClientRect();
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (!inside) {
+        this.pointer.active = false;
+        return;
+      }
       this.pointer.x = event.clientX - rect.left;
       this.pointer.y = event.clientY - rect.top;
       this.pointer.active = true;
@@ -364,10 +967,8 @@ class HeroFieldController {
       if (this.trails.length > 42) {
         this.trails.shift();
       }
-    });
-    this.root.addEventListener("pointerleave", () => {
-      this.pointer.active = false;
-    });
+    };
+    window.addEventListener("pointermove", handleWindowMove, { passive: true });
   }
 
   observe() {
@@ -412,13 +1013,15 @@ class HeroFieldController {
     const particles = Array.from({ length: count }, (_, index) => {
       const angle = rand() * Math.PI * 2;
       const radius = Math.sqrt(rand());
-      const centerX = this.width * (0.56 + (rand() - 0.5) * 0.2);
+      const centerX = this.width * (0.6 + (rand() - 0.5) * 0.2);
       const centerY = this.height * 0.5;
+      const baseX = this.width * (0.08 + rand() * 0.9);
       return {
         x: centerX + Math.cos(angle) * radius * this.width * 0.42,
         y: centerY + Math.sin(angle) * radius * this.height * 0.42,
-        baseX: this.width * (0.16 + rand() * 0.82),
+        baseX,
         baseY: this.height * (0.08 + rand() * 0.84),
+        fade: 0.18 + 0.82 * ease((baseX / this.width - 0.3) / 0.42),
         vx: 0,
         vy: 0,
         size: rand() > 0.82 ? 2.2 + rand() * 1.8 : 0.9 + rand() * 1.4,
@@ -470,7 +1073,7 @@ class HeroFieldController {
 
   color(tint, alpha) {
     if (tint === "cool") {
-      return `rgba(159, 191, 194, ${alpha})`;
+      return `rgba(111, 147, 155, ${alpha})`;
     }
     if (tint === "gold") {
       return `rgba(216, 170, 104, ${alpha})`;
@@ -521,7 +1124,7 @@ class HeroFieldController {
         return;
       }
       ctx.globalAlpha = 0.08 + Math.sin(time * 0.7 + anchor.phase) * 0.025;
-      ctx.strokeStyle = index % 3 === 0 ? "rgba(159, 191, 194, 0.38)" : "rgba(124, 71, 40, 0.34)";
+      ctx.strokeStyle = index % 3 === 0 ? "rgba(111, 147, 155, 0.38)" : "rgba(124, 71, 40, 0.34)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(anchor.x, anchor.y);
@@ -599,7 +1202,9 @@ class HeroFieldController {
       particle.x += (targetX - particle.x) * (0.035 + influence * 0.08);
       particle.y += (targetY - particle.y) * (0.035 + influence * 0.08);
 
-      const alpha = 0.18 + particle.size * 0.045 + influence * 0.42 + modeFactor * 0.08;
+      const alpha =
+        (0.18 + particle.size * 0.045 + influence * 0.42 + modeFactor * 0.08) *
+        lerp(particle.fade ?? 1, 1, influence);
       ctx.strokeStyle = this.color(particle.tint, clamp(alpha, 0.08, 0.82));
       ctx.fillStyle = this.color(particle.tint, clamp(alpha + 0.04, 0.1, 0.88));
 
@@ -1242,398 +1847,12 @@ class ProjectVisualController {
 
   tint(tint, alpha) {
     if (tint === "cool") {
-      return `rgba(180, 204, 208, ${alpha})`;
+      return `rgba(111, 147, 155, ${alpha})`;
     }
     if (tint === "gold") {
       return `rgba(210, 161, 95, ${alpha})`;
     }
     return `rgba(157, 91, 50, ${alpha})`;
-  }
-
-  spawnNeuron(time) {
-    const scene = this.scene;
-    if (!this.pointer.active || !scene) {
-      return;
-    }
-    const distanceFromLast = scene.lastSpawnX === null
-      ? Infinity
-      : Math.hypot(this.pointer.x - scene.lastSpawnX, this.pointer.y - scene.lastSpawnY);
-    const pointerSpeed = Math.hypot(this.pointer.vx, this.pointer.vy);
-    const minTime = pointerSpeed > 1.4 ? 0.18 : 0.5;
-    if (time - scene.lastSpawn < minTime || distanceFromLast < 42) {
-      return;
-    }
-    scene.lastSpawn = time;
-    scene.lastSpawnX = this.pointer.x;
-    scene.lastSpawnY = this.pointer.y;
-    scene.seed += 1;
-    const rand = mulberry32(hashSeed(`neuron-${scene.seed}-${Math.round(this.pointer.x)}-${Math.round(this.pointer.y)}`));
-    const travelAngle = pointerSpeed > 2
-      ? Math.atan2(this.pointer.vy, this.pointer.vx)
-      : -0.16 + (rand() - 0.5) * 0.7;
-    const axonAngle = travelAngle + (rand() - 0.5) * 0.42;
-    const somaX = clamp(this.pointer.x + (rand() - 0.5) * 20, 28, this.width - 28);
-    const somaY = clamp(this.pointer.y + (rand() - 0.5) * 20, 30, this.height - 30);
-    const branchCount = this.width < 520 ? 7 : 9 + Math.floor(rand() * 3);
-    const dendrites = Array.from({ length: branchCount }, (_, index) => {
-      const fan = branchCount > 1 ? (index / (branchCount - 1) - 0.5) : 0;
-      const angle = axonAngle + Math.PI + fan * Math.PI * 1.55 + (rand() - 0.5) * 0.46;
-      const length = 42 + rand() * 78;
-      const bend = (rand() - 0.5) * 36 + Math.sin(index * 1.83) * 8;
-      const forkCount = 2 + Math.floor(rand() * 2);
-      return {
-        angle,
-        length,
-        bend,
-        width: 1.05 + rand() * 0.65,
-        forks: Array.from({ length: forkCount }, (_, forkIndex) => ({
-          at: 0.34 + rand() * 0.5,
-          angle: angle + (forkIndex % 2 === 0 ? 1 : -1) * (0.44 + rand() * 0.68),
-          length: 13 + rand() * 34,
-          bend: (rand() - 0.5) * 20,
-          spinePhase: rand() * Math.PI * 2,
-        })),
-        phase: rand() * Math.PI * 2,
-        endpoint: { x: 0, y: 0 }
-      };
-    });
-    const terminalCount = 3 + Math.floor(rand() * 3);
-    const axon = {
-      angle: axonAngle,
-      length: Math.min(this.width * 0.36, 132 + rand() * 104),
-      bend: (rand() - 0.5) * 58,
-      terminals: Array.from({ length: terminalCount }, (_, index) => ({
-        angle: axonAngle + (index - (terminalCount - 1) / 2) * 0.34 + (rand() - 0.5) * 0.2,
-        length: 18 + rand() * 34,
-        phase: rand() * Math.PI * 2,
-      })),
-    };
-    scene.neurons.push({
-      x: somaX,
-      y: somaY,
-      born: time,
-      last: time,
-      life: 4.8 + rand() * 0.9,
-      size: 10.5 + rand() * 4.2,
-      dendrites,
-      axon,
-      validated: rand() > 0.7,
-      phase: rand() * Math.PI * 2,
-    });
-    const cap = this.width < 520 ? 5 : 6;
-    if (scene.neurons.length > cap) {
-      scene.neurons.shift();
-    }
-  }
-
-  neuronPoint(neuron, branch, amount) {
-    const growLength = branch.length * amount;
-    const endX = neuron.x + Math.cos(branch.angle) * growLength;
-    const endY = neuron.y + Math.sin(branch.angle) * growLength;
-    const cX = neuron.x + Math.cos(branch.angle + Math.PI * 0.5) * branch.bend * amount + Math.cos(branch.angle) * growLength * 0.46;
-    const cY = neuron.y + Math.sin(branch.angle + Math.PI * 0.5) * branch.bend * amount + Math.sin(branch.angle) * growLength * 0.46;
-    const inv = 1 - amount;
-    return {
-      x: inv * inv * neuron.x + 2 * inv * amount * cX + amount * amount * endX,
-      y: inv * inv * neuron.y + 2 * inv * amount * cY + amount * amount * endY,
-      cX,
-      cY,
-      endX,
-      endY,
-    };
-  }
-
-  axonPoint(neuron, amount) {
-    const axon = neuron.axon;
-    const length = axon.length * amount;
-    const endX = neuron.x + Math.cos(axon.angle) * length;
-    const endY = neuron.y + Math.sin(axon.angle) * length;
-    const cX = neuron.x + Math.cos(axon.angle + Math.PI * 0.5) * axon.bend * amount + Math.cos(axon.angle) * length * 0.5;
-    const cY = neuron.y + Math.sin(axon.angle + Math.PI * 0.5) * axon.bend * amount + Math.sin(axon.angle) * length * 0.5;
-    const inv = 1 - amount;
-    return {
-      x: inv * inv * neuron.x + 2 * inv * amount * cX + amount * amount * endX,
-      y: inv * inv * neuron.y + 2 * inv * amount * cY + amount * amount * endY,
-      cX,
-      cY,
-      endX,
-      endY,
-    };
-  }
-
-  findNearestDendrite(sourceNeuron, terminalX, terminalY, neurons) {
-    let best = null;
-    let bestDistance = 9999;
-    for (let i = 0; i < neurons.length; i += 1) {
-      const target = neurons[i];
-      if (target === sourceNeuron) {
-        continue;
-      }
-      const somaDistance = Math.hypot(target.x - terminalX, target.y - terminalY);
-      if (somaDistance < bestDistance) {
-        bestDistance = somaDistance;
-        best = { x: target.x, y: target.y, soma: true };
-      }
-      for (let j = 0; j < target.dendrites.length; j += 1) {
-        const branch = target.dendrites[j];
-        const endpoint = branch.endpoint;
-        if (!endpoint.ready) {
-          continue;
-        }
-        const distance = Math.hypot(endpoint.x - terminalX, endpoint.y - terminalY);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          best = endpoint;
-        }
-      }
-    }
-    return bestDistance < 86 ? { point: best, distance: bestDistance } : null;
-  }
-
-  drawNeuroPath(ctx, time) {
-    const { width, height } = this;
-    this.spawnNeuron(time);
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    const pointerActive = this.pointer.active && this.pointer.strength > 0.025;
-    for (let i = 0; i < this.scene.dust.length; i += 1) {
-      const dust = this.scene.dust[i];
-      const x = dust.x * width + Math.sin(time * 0.26 + dust.phase) * 9;
-      const y = dust.y * height + Math.cos(time * 0.22 + dust.phase) * 7;
-      const influence = pointerActive
-        ? ease(1 - Math.hypot(this.pointer.x - x, this.pointer.y - y) / 155) * this.pointer.strength
-        : 0;
-      ctx.fillStyle = this.tint(dust.tint, 0.075 + influence * 0.24);
-      ctx.beginPath();
-      ctx.arc(lerp(x, this.pointer.x, influence * 0.16), lerp(y, this.pointer.y, influence * 0.16), dust.size + influence * 1.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const neurons = this.scene.neurons;
-    for (let i = neurons.length - 1; i >= 0; i -= 1) {
-      const neuron = neurons[i];
-      if (pointerActive && Math.hypot(this.pointer.x - neuron.x, this.pointer.y - neuron.y) < 104) {
-        neuron.last = time;
-      }
-      if (time - neuron.last >= neuron.life) {
-        neurons.splice(i, 1);
-      }
-    }
-
-    for (let i = 0; i < neurons.length; i += 1) {
-      const neuron = neurons[i];
-      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
-      const alpha = ease(1 - decay);
-      const edgeAlpha = ease(1 - decay * 1.18);
-      const age = time - neuron.born;
-      for (let index = 0; index < neuron.dendrites.length; index += 1) {
-        const branch = neuron.dendrites[index];
-        const grow = ease(clamp(age * 0.92 - index * 0.035, 0, 1));
-        if (grow <= 0) {
-          branch.endpoint.ready = false;
-          continue;
-        }
-        const p = this.neuronPoint(neuron, branch, grow);
-        branch.endpoint.x = p.x;
-        branch.endpoint.y = p.y;
-        branch.endpoint.ready = grow > 0.7;
-        ctx.strokeStyle = neuron.validated
-          ? `rgba(180, 204, 208, ${0.16 * edgeAlpha})`
-          : `rgba(123, 71, 41, ${0.24 * edgeAlpha})`;
-        ctx.lineWidth = branch.width + edgeAlpha * 0.72;
-        ctx.beginPath();
-        ctx.moveTo(neuron.x, neuron.y);
-        ctx.quadraticCurveTo(p.cX, p.cY, p.x, p.y);
-        ctx.stroke();
-
-        for (let forkIndex = 0; forkIndex < branch.forks.length; forkIndex += 1) {
-          const fork = branch.forks[forkIndex];
-          if (grow < fork.at) {
-            continue;
-          }
-          const forkGrow = ease((grow - fork.at) / (1 - fork.at));
-          const origin = this.neuronPoint(neuron, branch, fork.at);
-          const fx = origin.x + Math.cos(fork.angle) * fork.length * forkGrow;
-          const fy = origin.y + Math.sin(fork.angle) * fork.length * forkGrow;
-          ctx.strokeStyle = `rgba(123, 71, 41, ${0.15 * edgeAlpha})`;
-          ctx.lineWidth = 0.64 + edgeAlpha * 0.36;
-          ctx.beginPath();
-          ctx.moveTo(origin.x, origin.y);
-          ctx.quadraticCurveTo(
-            origin.x + Math.cos(fork.angle + 0.58) * fork.bend,
-            origin.y + Math.sin(fork.angle + 0.58) * fork.bend,
-            fx,
-            fy
-          );
-          ctx.stroke();
-
-          const spineT = 0.4 + ((fork.spinePhase + time * 0.02) % 0.35);
-          if (forkGrow > spineT) {
-            const spineX = origin.x + Math.cos(fork.angle) * fork.length * spineT;
-            const spineY = origin.y + Math.sin(fork.angle) * fork.length * spineT;
-            ctx.strokeStyle = `rgba(123, 71, 41, ${0.08 * edgeAlpha})`;
-            ctx.lineWidth = 0.55;
-            ctx.beginPath();
-            ctx.moveTo(spineX, spineY);
-            ctx.lineTo(
-              spineX + Math.cos(fork.angle + Math.PI * 0.55) * 4.2,
-              spineY + Math.sin(fork.angle + Math.PI * 0.55) * 4.2
-            );
-            ctx.stroke();
-          }
-
-          ctx.fillStyle = `rgba(210, 161, 95, ${0.18 * alpha})`;
-          ctx.beginPath();
-          ctx.arc(fx, fy, 1.6, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        if (index % 2 === 0 && grow > 0.66) {
-          const spine = this.neuronPoint(neuron, branch, 0.72 + (branch.phase % 0.2));
-          ctx.fillStyle = `rgba(123, 71, 41, ${0.11 * edgeAlpha})`;
-          ctx.beginPath();
-          ctx.arc(spine.x + Math.cos(branch.angle + 1.2) * 4, spine.y + Math.sin(branch.angle + 1.2) * 4, 1.15, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-
-    for (let i = 0; i < neurons.length; i += 1) {
-      const neuron = neurons[i];
-      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
-      const alpha = ease(1 - decay);
-      const edgeAlpha = ease(1 - decay * 1.18);
-      const age = time - neuron.born;
-      const grow = ease(clamp(age * 0.62, 0, 1));
-      const axonEnd = this.axonPoint(neuron, grow);
-      neuron.axon.end = axonEnd;
-      ctx.strokeStyle = neuron.validated
-        ? `rgba(180, 204, 208, ${0.2 * edgeAlpha})`
-        : `rgba(157, 91, 50, ${0.3 * edgeAlpha})`;
-      ctx.lineWidth = 1.05 + edgeAlpha * 0.48;
-      ctx.beginPath();
-      ctx.moveTo(neuron.x, neuron.y);
-      ctx.quadraticCurveTo(axonEnd.cX, axonEnd.cY, axonEnd.x, axonEnd.y);
-      ctx.stroke();
-
-      for (let terminalIndex = 0; terminalIndex < neuron.axon.terminals.length; terminalIndex += 1) {
-        const terminal = neuron.axon.terminals[terminalIndex];
-        if (grow < 0.74) {
-          terminal.ready = false;
-          continue;
-        }
-        const terminalGrow = ease((grow - 0.74) / 0.26);
-        const base = this.axonPoint(neuron, 0.9 + (terminal.phase % 0.08));
-        const tx = base.x + Math.cos(terminal.angle) * terminal.length * terminalGrow;
-        const ty = base.y + Math.sin(terminal.angle) * terminal.length * terminalGrow;
-        terminal.x = tx;
-        terminal.y = ty;
-        terminal.ready = terminalGrow > 0.72;
-        ctx.strokeStyle = `rgba(123, 71, 41, ${0.18 * edgeAlpha})`;
-        ctx.lineWidth = 0.92;
-        ctx.beginPath();
-        ctx.moveTo(base.x, base.y);
-        ctx.quadraticCurveTo(
-          base.x + Math.cos(terminal.angle + 0.45) * 14,
-          base.y + Math.sin(terminal.angle + 0.45) * 14,
-          tx,
-          ty
-        );
-        ctx.stroke();
-        ctx.fillStyle = `rgba(157, 91, 50, ${0.24 * alpha})`;
-        ctx.beginPath();
-        ctx.arc(tx, ty, 2.6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      if (age > 0.75 && edgeAlpha > 0.12) {
-        const pulseT = (time * 0.5 + neuron.phase) % 1;
-        const pulse = this.axonPoint(neuron, pulseT);
-        ctx.fillStyle = neuron.validated
-          ? `rgba(180, 204, 208, ${0.54 * edgeAlpha})`
-          : `rgba(255, 231, 187, ${0.48 * edgeAlpha})`;
-        ctx.beginPath();
-        ctx.arc(pulse.x, pulse.y, 2.4, 0, Math.PI * 2);
-        ctx.fill();
-
-        const branch = neuron.dendrites[(Math.floor(time + neuron.phase) + i) % neuron.dendrites.length];
-        const dendritePulseT = (time * 0.34 + neuron.phase * 0.37) % 1;
-        if (branch?.endpoint.ready && dendritePulseT < 0.92) {
-          const dendritePulse = this.neuronPoint(neuron, branch, dendritePulseT);
-          ctx.fillStyle = `rgba(180, 204, 208, ${0.28 * edgeAlpha})`;
-          ctx.beginPath();
-          ctx.arc(dendritePulse.x, dendritePulse.y, 1.65, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-
-    for (let i = 0; i < neurons.length; i += 1) {
-      const neuron = neurons[i];
-      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
-      const alpha = ease(1 - decay);
-      let bestContact = null;
-      for (let j = 0; j < neuron.axon.terminals.length; j += 1) {
-        const terminal = neuron.axon.terminals[j];
-        if (!terminal.ready) {
-          continue;
-        }
-        const target = this.findNearestDendrite(neuron, terminal.x, terminal.y, neurons);
-        if (target && (!bestContact || target.distance < bestContact.distance)) {
-          bestContact = { terminal, point: target.point, distance: target.distance };
-        }
-      }
-      if (bestContact) {
-        const contactAlpha = (1 - bestContact.distance / 86) * 0.23 * alpha;
-        ctx.strokeStyle = `rgba(123, 71, 41, ${contactAlpha})`;
-        ctx.lineWidth = 0.9;
-        ctx.setLineDash([3, 7]);
-        ctx.beginPath();
-        ctx.moveTo(bestContact.terminal.x, bestContact.terminal.y);
-        ctx.quadraticCurveTo(
-          (bestContact.terminal.x + bestContact.point.x) / 2,
-          (bestContact.terminal.y + bestContact.point.y) / 2 - 16,
-          bestContact.point.x,
-          bestContact.point.y
-        );
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = `rgba(180, 204, 208, ${contactAlpha * 1.8})`;
-        ctx.beginPath();
-        ctx.arc(bestContact.point.x, bestContact.point.y, bestContact.point.soma ? 2.4 : 1.9, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    for (let i = 0; i < neurons.length; i += 1) {
-      const neuron = neurons[i];
-      const decay = clamp((time - neuron.last) / neuron.life, 0, 1);
-      const alpha = ease(1 - decay);
-      const hillockX = neuron.x + Math.cos(neuron.axon.angle) * neuron.size * 0.9;
-      const hillockY = neuron.y + Math.sin(neuron.axon.angle) * neuron.size * 0.72;
-      ctx.fillStyle = neuron.validated
-        ? `rgba(180, 204, 208, ${0.36 * alpha})`
-        : `rgba(123, 71, 41, ${0.56 * alpha})`;
-      ctx.beginPath();
-      ctx.ellipse(neuron.x, neuron.y, neuron.size * 1.08, neuron.size * 0.92, neuron.axon.angle * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = `rgba(255, 248, 238, ${0.38 * alpha})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(157, 91, 50, ${0.2 * alpha})`;
-      ctx.lineWidth = 1.05;
-      ctx.beginPath();
-      ctx.moveTo(neuron.x, neuron.y);
-      ctx.lineTo(hillockX, hillockY);
-      ctx.stroke();
-      ctx.fillStyle = `rgba(33, 20, 13, ${0.17 * alpha})`;
-      ctx.beginPath();
-      ctx.arc(neuron.x + Math.cos(neuron.axon.angle + 0.8) * neuron.size * 0.18, neuron.y + Math.sin(neuron.axon.angle + 0.8) * neuron.size * 0.18, neuron.size * 0.28, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
   }
 
   curvePoint(curve, amount) {
@@ -1762,7 +1981,7 @@ class ProjectVisualController {
       const pulseAlpha = Math.max(fromActivity, held) * 0.72;
       if (pulseAlpha > 0.04) {
         const pulse = this.curvePoint(connection.curve, (time * 0.24 + connection.phase) % 1);
-        ctx.fillStyle = `rgba(180, 204, 208, ${0.08 + pulseAlpha * 0.38})`;
+        ctx.fillStyle = `rgba(111, 147, 155, ${0.08 + pulseAlpha * 0.38})`;
         ctx.beginPath();
         ctx.arc(pulse.x, pulse.y, 0.95 + pulseAlpha * 0.28, 0, Math.PI * 2);
         ctx.fill();
@@ -1804,7 +2023,7 @@ class ProjectVisualController {
         const pulseT = ((readyAge * 0.76) + connection.phase * 0.08 + pulseOffsets[pulseIndex]) % 1;
         if (pulseT < grow && pulseT > 0.04) {
           const pulse = this.curvePoint(connection.curve, pulseT);
-          ctx.fillStyle = `rgba(180, 204, 208, ${pulseAlpha * 0.16})`;
+          ctx.fillStyle = `rgba(111, 147, 155, ${pulseAlpha * 0.16})`;
           ctx.beginPath();
           ctx.arc(pulse.x, pulse.y, 3.4, 0, Math.PI * 2);
           ctx.fill();
@@ -1865,7 +2084,7 @@ class ProjectVisualController {
           const pulseT = clamp(branchGrow * (1 - inward), 0.06, branchGrow);
           const branchPulse = this.curvePoint(branch.curve, pulseT);
           const branchPulseAlpha = (0.12 + activity * 0.2) * lifeAlpha * branchGrow;
-          ctx.fillStyle = `rgba(180, 204, 208, ${branchPulseAlpha * 0.12})`;
+          ctx.fillStyle = `rgba(111, 147, 155, ${branchPulseAlpha * 0.12})`;
           ctx.beginPath();
           ctx.arc(branchPulse.x, branchPulse.y, 2.2, 0, Math.PI * 2);
           ctx.fill();
@@ -1909,7 +2128,7 @@ class ProjectVisualController {
           if (!neuron.dynamic || pulseT < axonGrow) {
             const axonPulse = this.curvePoint(neuron.axon, pulseT);
             const pulseAlpha = neuron.dynamic ? (0.24 + activity * 0.32) * lifeAlpha : (0.18 + activity * 0.28);
-            ctx.fillStyle = `rgba(180, 204, 208, ${pulseAlpha * 0.16})`;
+            ctx.fillStyle = `rgba(111, 147, 155, ${pulseAlpha * 0.16})`;
             ctx.beginPath();
             ctx.arc(axonPulse.x, axonPulse.y, neuron.dynamic ? 3.4 : 2.4, 0, Math.PI * 2);
             ctx.fill();
@@ -1942,8 +2161,8 @@ class ProjectVisualController {
       ctx.stroke();
 
       ctx.fillStyle = neuron.dynamic
-        ? `rgba(180, 204, 208, ${(0.2 + activity * 0.32) * lifeAlpha})`
-        : `rgba(180, 204, 208, ${0.02 + activity * 0.055})`;
+        ? `rgba(111, 147, 155, ${(0.2 + activity * 0.32) * lifeAlpha})`
+        : `rgba(111, 147, 155, ${0.02 + activity * 0.055})`;
       ctx.beginPath();
       ctx.arc(
         neuron.x + Math.cos(neuron.axonAngle + 0.65) * neuron.size * 0.2,
@@ -2080,7 +2299,7 @@ class ProjectVisualController {
       });
       const tailAlpha = ray.captured ? Math.max(0, 1 - ray.captureAge / 1.15) : 1;
       ctx.strokeStyle = ray.tone === 2
-        ? `rgba(180, 204, 208, ${0.32 * ray.brightness * tailAlpha})`
+        ? `rgba(111, 147, 155, ${0.32 * ray.brightness * tailAlpha})`
         : ray.tone === 1
         ? `rgba(157, 91, 50, ${0.62 * ray.brightness * tailAlpha})`
         : `rgba(210, 161, 95, ${0.66 * ray.brightness * tailAlpha})`;
@@ -2088,7 +2307,7 @@ class ProjectVisualController {
       ctx.stroke();
 
       ctx.fillStyle = ray.tone === 2
-        ? `rgba(180, 204, 208, ${0.44 * tailAlpha})`
+        ? `rgba(111, 147, 155, ${0.44 * tailAlpha})`
         : `rgba(255, 231, 187, ${0.52 * tailAlpha})`;
       ctx.beginPath();
       ctx.arc(ray.x, ray.y, ray.captured ? 1.7 : 2.2, 0, Math.PI * 2);
@@ -2208,7 +2427,7 @@ class ProjectVisualController {
       const carWidth = vehicle.length;
       const carHeight = Math.min(8, laneGap * 0.18);
       ctx.fillStyle = vehicle.tone === 2
-        ? "rgba(180, 204, 208, 0.46)"
+        ? "rgba(111, 147, 155, 0.46)"
         : vehicle.tone === 1
         ? "rgba(157, 91, 50, 0.68)"
         : "rgba(45, 27, 18, 0.56)";
@@ -2271,7 +2490,7 @@ class ProjectVisualController {
       ctx.arc(x, y, 82, -1.2, 1.05);
       ctx.arc(x, y, 116, 2.15, 4.05);
       ctx.stroke();
-      ctx.strokeStyle = `rgba(180, 204, 208, ${0.12 * alpha})`;
+      ctx.strokeStyle = `rgba(111, 147, 155, ${0.12 * alpha})`;
       ctx.setLineDash([3, 9]);
       ctx.beginPath();
       ctx.moveTo(x - 106, y + 88);
@@ -2333,7 +2552,7 @@ class ProjectVisualController {
         : type === "check" || type === "shield"
         ? `rgba(157, 91, 50, ${alpha})`
         : type === "lab" || type === "profile"
-        ? `rgba(180, 204, 208, ${alpha * 0.78})`
+        ? `rgba(111, 147, 155, ${alpha * 0.78})`
         : `rgba(123, 71, 41, ${alpha})`;
     ctx.lineWidth = 1.55;
     if (type === "capsule") {
@@ -2542,12 +2761,13 @@ class FeaturedDrawerController {
     return true;
   }
 
-  scrollStageIntoView() {
-    if (!this.drawer) {
+  scrollStageIntoView(card) {
+    const anchor = card || this.drawer;
+    if (!anchor) {
       return;
     }
-    const offset = 86;
-    const target = this.drawer.getBoundingClientRect().top + window.scrollY - offset;
+    const offset = 82;
+    const target = anchor.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({
       top: Math.max(0, target),
       behavior: reducedMotionQuery.matches ? "auto" : "smooth",
@@ -2570,6 +2790,7 @@ class FeaturedDrawerController {
     this.setCardState(projectId);
     this.setCurrentHeroProject(projectId);
     this.heroField?.setLockedMode(meta.mode);
+    meta.card.after(this.drawer);
     this.drawer.hidden = false;
     window.requestAnimationFrame(() => {
       this.drawer.classList.add("is-open");
@@ -2577,7 +2798,7 @@ class FeaturedDrawerController {
       this.projectVisual?.resize();
       this.projectVisual?.syncLoop();
       if (options.scrollToStage !== false) {
-        this.scrollStageIntoView();
+        this.scrollStageIntoView(meta.card);
       }
       window.setTimeout(() => {
         this.drawer?.classList.remove("is-activating");
@@ -2586,12 +2807,6 @@ class FeaturedDrawerController {
     });
     if (options.updateHash !== false) {
       window.history.replaceState(null, "", `#${projectId}`);
-    }
-    if (options.scrollToCard) {
-      meta.card.scrollIntoView({
-        behavior: reducedMotionQuery.matches ? "auto" : "smooth",
-        block: "start",
-      });
     }
   }
 
@@ -2678,25 +2893,6 @@ function setupReveal(motion) {
   revealItems.forEach((item) => observer.observe(item));
 }
 
-function setupPrimaryActionBurst(motion) {
-  const primary = document.querySelector(".hero-action--primary");
-  if (!primary) {
-    return;
-  }
-  primary.addEventListener("click", (event) => {
-    if (motion.reduced || !finePointerQuery.matches) {
-      return;
-    }
-    const rect = primary.getBoundingClientRect();
-    const burst = document.createElement("span");
-    burst.className = "cta-burst";
-    burst.style.setProperty("--burst-x", `${event.clientX - rect.left}px`);
-    burst.style.setProperty("--burst-y", `${event.clientY - rect.top}px`);
-    primary.append(burst);
-    window.setTimeout(() => burst.remove(), 760);
-  });
-}
-
 function setupNavObserver() {
   const links = Array.from(document.querySelectorAll("[data-nav]"));
   const sections = links
@@ -2751,12 +2947,11 @@ const projectVisual = new ProjectVisualController(
   motion
 );
 
-new RibbonController(document.querySelector(".symbol-ribbon"), motion);
+new GlyphRibbonController(document.querySelector("[data-ribbon]"), motion);
+new PageTraceController(document.querySelector("[data-page-trace]"), motion);
 new SpotlightController(
   Array.from(
-    document.querySelectorAll(
-      ".hero-action, .proof-item, .project-card-button, .mini-card, .drawer-surface"
-    )
+    document.querySelectorAll(".project-card-button, .archive-row, .drawer-surface")
   )
 );
 
@@ -2773,7 +2968,6 @@ new FeaturedDrawerController({
 });
 
 setupReveal(motion);
-setupPrimaryActionBurst(motion);
 setupNavObserver();
 
 motion.onChange(() => {

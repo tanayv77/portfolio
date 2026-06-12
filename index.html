@@ -21,6 +21,22 @@
     <div id="cur-ring" aria-hidden="true"></div>
     <a class="skip-link" href="#main">Skip to content</a>
 
+    <div class="page-trace" aria-hidden="true" data-page-trace>
+      <svg preserveAspectRatio="none" focusable="false">
+        <path class="trace-base" d="" />
+        <path class="trace-flow" d="" />
+        <g class="trace-stations"></g>
+        <g class="trace-probe">
+          <circle class="trace-probe-halo" r="9" />
+          <circle class="trace-probe-core" r="3" />
+        </g>
+        <g class="trace-endpoint">
+          <circle class="trace-endpoint-ring" r="12" />
+          <circle class="trace-endpoint-core" r="3.4" />
+        </g>
+      </svg>
+    </div>
+
     <header class="site-header">
       <div class="shell nav-shell">
         <a class="brand-lockup" href="#top" aria-label="Tanay Veeragandham home">
@@ -47,6 +63,9 @@
 
     <main id="main">
       <section class="hero" id="top">
+        <div class="hero-field" data-hero-field aria-hidden="true">
+          <canvas class="hero-field-canvas"></canvas>
+        </div>
         <div class="shell hero-grid">
           <div class="hero-copy reveal">
             <p class="eyebrow">Software Engineer</p>
@@ -67,8 +86,8 @@
             </p>
 
             <div class="hero-actions">
-              <a class="hero-action hero-action--primary" href="#work">View work</a>
-              <a class="hero-action hero-action--secondary" href="#contact">Connect</a>
+              <a class="action action--primary" href="#work">View work</a>
+              <a class="action action--ghost" href="#contact">Connect</a>
             </div>
 
             <div class="hero-index-block">
@@ -81,208 +100,38 @@
               </div>
             </div>
           </div>
-
-          <div class="hero-visual reveal" aria-hidden="true">
-            <div class="hero-field" data-hero-field>
-              <canvas class="hero-field-canvas"></canvas>
-            </div>
-          </div>
         </div>
       </section>
 
-      <section class="symbol-ribbon" aria-hidden="true">
-        <svg class="symbol-defs" width="0" height="0" focusable="false" aria-hidden="true">
-          <defs>
-            <symbol id="sym-car" viewBox="0 0 48 48">
-              <path d="M9 30h30l-4.5-10.5A5 5 0 0 0 30 16H18a5 5 0 0 0-4.5 3.5L9 30Z" />
-              <path d="M13 30v5h5" />
-              <path d="M35 30v5h-5" />
-              <circle cx="18" cy="34" r="3.2" />
-              <circle cx="30" cy="34" r="3.2" />
-              <path d="M16 22h16" />
-            </symbol>
-            <symbol id="sym-road" viewBox="0 0 48 48">
-              <path d="M9 39 20 9" />
-              <path d="M39 39 28 9" />
-              <path d="M24 34v-5" />
-              <path d="M24 23v-5" />
-              <path d="M24 12V9" />
-            </symbol>
-            <symbol id="sym-checkpoint" viewBox="0 0 48 48">
-              <path d="M10 36h28" />
-              <path d="M14 36V12h20v24" />
-              <path d="M18 21h12" />
-              <path d="m29 28 3 3 6-7" />
-              <path d="M7 18h7" />
-              <path d="M34 18h7" />
-            </symbol>
-            <symbol id="sym-lane" viewBox="0 0 48 48">
-              <path d="M8 14h32" />
-              <path d="M8 24h32" />
-              <path d="M8 34h32" />
-              <path d="M17 14v20" />
-              <path d="M31 14v20" />
-            </symbol>
-            <symbol id="sym-capsule" viewBox="0 0 48 48">
-              <path d="M16.4 31.6a8.9 8.9 0 0 1 0-12.6L19 16.4a8.9 8.9 0 1 1 12.6 12.6L29 31.6a8.9 8.9 0 0 1-12.6 0Z" />
-              <path d="m18.6 18.8 10.6 10.6" />
-            </symbol>
-            <symbol id="sym-bottle" viewBox="0 0 48 48">
-              <path d="M19 12h10" />
-              <path d="M21 12v7l-4 5v14a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4V24l-4-5v-7" />
-              <path d="M18 29h12" />
-              <path d="M21 34h6" />
-            </symbol>
-            <symbol id="sym-shield" viewBox="0 0 48 48">
-              <path d="M24 7 38 12v10c0 9.8-6.1 16.1-14 19-7.9-2.9-14-9.2-14-19V12l14-5Z" />
-              <path d="m18 24 4 4 8-9" />
-            </symbol>
-            <symbol id="sym-doc" viewBox="0 0 48 48">
-              <path d="M15 8h13l7 7v25H15V8Z" />
-              <path d="M28 8v8h7" />
-              <path d="M20 23h13" />
-              <path d="M20 29h10" />
-              <path d="M20 35h7" />
-            </symbol>
-            <symbol id="sym-neuron" viewBox="0 0 48 48">
-              <circle cx="14" cy="15" r="4" />
-              <circle cx="33" cy="14" r="3.5" />
-              <circle cx="25" cy="34" r="4" />
-              <path d="M18 16c5 1 8 0 11-1" />
-              <path d="M16 18c3 5 5 9 8 13" />
-              <path d="M32 18c-2 6-4 10-6 13" />
-              <path d="M29 34h9" />
-            </symbol>
-            <symbol id="sym-light-ray" viewBox="0 0 48 48">
-              <path d="M5 17c9-7 18 7 28 0 4-3 7-4 10-3" />
-              <path d="M5 30c10 5 17-9 27-3 5 3 8 4 11 3" />
-              <circle cx="30" cy="23" r="4" />
-            </symbol>
-            <symbol id="sym-lens" viewBox="0 0 48 48">
-              <ellipse cx="24" cy="24" rx="9" ry="16" />
-              <path d="M4 16c10 2 17 3 28 1 5-1 9-1 12 0" />
-              <path d="M4 32c10-2 17-3 28-1 5 1 9 1 12 0" />
-            </symbol>
-            <symbol id="sym-refine" viewBox="0 0 48 48">
-              <path d="M9 9h30v30H9V9Z" />
-              <path d="M24 9v30" />
-              <path d="M9 24h30" />
-              <path d="M24 24h15v15" />
-              <path d="M31.5 24v15" />
-              <path d="M24 31.5h15" />
-            </symbol>
-            <symbol id="sym-api" viewBox="0 0 48 48">
-              <path d="M18 10 8 24l10 14" />
-              <path d="M30 10 40 24 30 38" />
-              <path d="M21 32 27 16" />
-              <path d="M14 24h8" />
-              <path d="M26 24h8" />
-            </symbol>
-            <symbol id="sym-report" viewBox="0 0 48 48">
-              <path d="M13 8h22v32H13V8Z" />
-              <path d="m19 19 3 3 7-8" />
-              <path d="M19 29h13" />
-              <path d="M19 35h9" />
-            </symbol>
-            <symbol id="sym-terminal" viewBox="0 0 48 48">
-              <path d="M8 12h32v24H8V12Z" />
-              <path d="m15 21 5 4-5 4" />
-              <path d="M24 30h9" />
-            </symbol>
-            <symbol id="sym-graph" viewBox="0 0 48 48">
-              <circle cx="13" cy="31" r="4" />
-              <circle cx="24" cy="14" r="4" />
-              <circle cx="36" cy="29" r="4" />
-              <path d="m15.2 27.6 6.6-10.2" />
-              <path d="m27.5 17.2 6.8 8.6" />
-              <path d="M17 31h15" />
-            </symbol>
-            <symbol id="sym-database" viewBox="0 0 48 48">
-              <ellipse cx="24" cy="13" rx="13" ry="5" />
-              <path d="M11 13v22c0 2.8 5.8 5 13 5s13-2.2 13-5V13" />
-              <path d="M11 24c0 2.8 5.8 5 13 5s13-2.2 13-5" />
-            </symbol>
-          </defs>
-        </svg>
-
-        <div class="ribbon-window">
-          <div class="ribbon-track ribbon-track--far">
-            <div class="ribbon-segment">
-              <span class="ribbon-symbol" style="--phase: 0s"><svg><use href="#sym-database"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: .7s"><svg><use href="#sym-lens"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 1.4s"><svg><use href="#sym-bottle"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 2.1s"><svg><use href="#sym-lane"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 2.8s"><svg><use href="#sym-graph"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 3.5s"><svg><use href="#sym-report"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 4.2s"><svg><use href="#sym-light-ray"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 4.9s"><svg><use href="#sym-api"></use></svg></span>
-            </div>
-            <div class="ribbon-segment" aria-hidden="true">
-              <span class="ribbon-symbol" style="--phase: 0s"><svg><use href="#sym-database"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: .7s"><svg><use href="#sym-lens"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 1.4s"><svg><use href="#sym-bottle"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 2.1s"><svg><use href="#sym-lane"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 2.8s"><svg><use href="#sym-graph"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 3.5s"><svg><use href="#sym-report"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 4.2s"><svg><use href="#sym-light-ray"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 4.9s"><svg><use href="#sym-api"></use></svg></span>
-            </div>
-          </div>
-
-          <div class="ribbon-track ribbon-track--near">
-            <div class="ribbon-segment">
-              <span class="ribbon-symbol" style="--phase: .2s"><svg><use href="#sym-neuron"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 1s"><svg><use href="#sym-light-ray"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 1.8s"><svg><use href="#sym-checkpoint"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 2.6s"><svg><use href="#sym-capsule"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 3.4s"><svg><use href="#sym-refine"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 4.2s"><svg><use href="#sym-car"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 5s"><svg><use href="#sym-shield"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 5.8s"><svg><use href="#sym-terminal"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 6.6s"><svg><use href="#sym-road"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 7.4s"><svg><use href="#sym-doc"></use></svg></span>
-            </div>
-            <div class="ribbon-segment" aria-hidden="true">
-              <span class="ribbon-symbol" style="--phase: .2s"><svg><use href="#sym-neuron"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 1s"><svg><use href="#sym-light-ray"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 1.8s"><svg><use href="#sym-checkpoint"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 2.6s"><svg><use href="#sym-capsule"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 3.4s"><svg><use href="#sym-refine"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 4.2s"><svg><use href="#sym-car"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 5s"><svg><use href="#sym-shield"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 5.8s"><svg><use href="#sym-terminal"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 6.6s"><svg><use href="#sym-road"></use></svg></span>
-              <span class="ribbon-symbol" style="--phase: 7.4s"><svg><use href="#sym-doc"></use></svg></span>
-            </div>
-          </div>
-        </div>
+      <section class="symbol-ribbon" aria-hidden="true" data-ribbon>
+        <canvas class="ribbon-canvas"></canvas>
       </section>
 
       <section class="proof-band" id="method">
         <div class="shell proof-grid" data-reveal-group>
           <article class="proof-item reveal">
-            <span class="proof-icon" aria-hidden="true"><svg><use href="#sym-lens"></use></svg></span>
+            <span class="proof-index" aria-hidden="true">01</span>
             <div>
               <h2>Physics-first</h2>
               <p>Systems informed by first-principles thinking.</p>
             </div>
           </article>
           <article class="proof-item reveal">
-            <span class="proof-icon" aria-hidden="true"><svg><use href="#sym-terminal"></use></svg></span>
+            <span class="proof-index" aria-hidden="true">02</span>
             <div>
               <h2>Production-minded</h2>
               <p>Scalable, testable, and built for change.</p>
             </div>
           </article>
           <article class="proof-item reveal">
-            <span class="proof-icon" aria-hidden="true"><svg><use href="#sym-api"></use></svg></span>
+            <span class="proof-index" aria-hidden="true">03</span>
             <div>
               <h2>Clean boundaries</h2>
               <p>APIs, evidence gates, and contracts that age well.</p>
             </div>
           </article>
           <article class="proof-item reveal">
-            <span class="proof-icon" aria-hidden="true"><svg><use href="#sym-report"></use></svg></span>
+            <span class="proof-index" aria-hidden="true">04</span>
             <div>
               <h2>Research to impact</h2>
               <p>Turning experiments into usable tools.</p>
@@ -303,208 +152,192 @@
             </p>
           </div>
 
-          <div class="featured-grid" data-reveal-group>
+          <div class="featured-list" data-reveal-group>
             <article class="featured-card reveal" id="neuropath">
               <button class="project-card-button" type="button" data-project="neuropath" aria-expanded="false" aria-controls="project-drawer">
-                <span class="project-card-top">
+                <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">01</span>
+                </span>
+                <span class="project-card-copy">
                   <span class="project-category">Simulation / Computational Neuroscience Tooling</span>
-                </span>
-                <span class="project-card-main">
-                  <span class="project-card-copy">
-                    <span class="project-card-title">NeuroPath</span>
-                    <span class="project-card-text">
-                      Deterministic artificial-life and connectome-analysis framework for reproducible simulations, graph experiments, and source-backed fly-brain pathway investigations.
-                    </span>
-                    <span class="project-tags" aria-label="Technologies">
-                      <span>Python</span><span>Simulation</span><span>CLI</span><span>JSON Persistence</span><span>Connectome Graphs</span><span>Pytest</span>
-                    </span>
+                  <span class="project-card-title">NeuroPath</span>
+                  <span class="project-card-text">
+                    Deterministic artificial-life and connectome-analysis framework for reproducible simulations, graph experiments, and source-backed fly-brain pathway investigations.
                   </span>
-                  <span class="project-preview project-preview--neuropath" aria-hidden="true">
-                    <svg viewBox="0 0 260 180">
-                      <path class="preview-neuro-field" d="M24 121 C55 102 82 105 112 116 C145 129 173 123 205 103 C222 93 236 90 248 92" />
-                      <path class="preview-neuro-field" d="M34 63 C64 77 92 75 119 62 C151 46 178 54 207 72 C222 81 236 83 248 78" />
-                      <path class="preview-neuro-dendrite" d="M74 93 C58 85 47 74 37 60M58 78 C47 79 38 74 29 67M60 82 C50 93 40 100 27 105M75 87 C68 71 69 58 76 42M69 64 C60 57 55 50 52 39M75 64 C86 57 93 48 98 37" />
-                      <path class="preview-neuro-dendrite" d="M138 71 C124 62 116 51 111 37M126 58 C115 58 106 52 98 45M140 67 C151 54 160 45 173 39M153 54 C163 58 171 57 181 52M135 78 C119 85 107 94 95 108M118 91 C106 88 95 91 84 99" />
-                      <path class="preview-neuro-dendrite" d="M184 106 C171 95 166 84 164 70M171 89 C160 87 151 81 142 73M187 101 C203 88 216 81 232 76M209 85 C219 91 229 91 239 88M183 112 C170 123 159 132 144 139M164 126 C154 123 144 126 134 133M190 114 C201 128 208 139 213 153" />
-                      <path class="preview-neuro-axon" d="M82 96 C108 94 123 83 140 76 C160 69 172 83 184 104" />
-                      <path class="preview-neuro-terminal" d="M181 104 C168 111 158 116 145 123M185 107 C172 119 164 129 158 143M188 104 C204 104 216 108 230 116" />
-                      <path class="preview-neuro-cell" d="M70 89 C75 84 83 86 86 93 C89 101 83 107 75 106 C67 105 63 98 65 92 C66 91 68 90 70 89Z" />
-                      <path class="preview-neuro-cell" d="M134 65 C140 61 148 64 150 71 C152 78 146 83 139 82 C131 81 128 74 130 68 C131 67 132 66 134 65Z" />
-                      <path class="preview-neuro-cell" d="M180 99 C186 94 194 97 196 104 C198 111 192 116 185 115 C177 114 174 108 176 102 C177 101 178 100 180 99Z" />
-                      <circle class="preview-neuro-core" cx="77" cy="96" r="0.95" />
-                      <circle class="preview-neuro-core" cx="140" cy="72" r="0.8" />
-                      <circle class="preview-neuro-core" cx="185" cy="106" r="0.85" />
-                      <circle class="preview-neuro-synapse" cx="145" cy="123" r="1.7" />
-                      <circle class="preview-neuro-synapse" cx="158" cy="143" r="1.5" />
-                      <circle class="preview-neuro-synapse" cx="230" cy="116" r="1.7" />
-                      <circle class="preview-neuro-signal" cx="118" cy="87" r="1.5" />
-                      <circle class="preview-neuro-signal" cx="169" cy="83" r="1.5" />
-                      <path class="preview-neuro-pulse" d="M92 94 C114 91 128 82 145 76" />
-                    </svg>
+                  <span class="project-meta" aria-label="Technologies">Python&ensp;·&ensp;Simulation&ensp;·&ensp;CLI&ensp;·&ensp;JSON Persistence&ensp;·&ensp;Connectome Graphs&ensp;·&ensp;Pytest</span>
+                  <span class="project-card-footer">
+                    <span class="project-card-link project-card-link--closed">Read case study</span>
+                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
-                <span class="project-card-footer">
-                  <span class="project-card-link project-card-link--closed">Read case study</span>
-                  <span class="project-card-link project-card-link--open">Hide case study</span>
-                  <span class="toggle-icon" aria-hidden="true"></span>
+                <span class="project-preview project-preview--neuropath" aria-hidden="true">
+                  <svg viewBox="0 0 260 180">
+                    <path class="preview-neuro-field" d="M24 121 C55 102 82 105 112 116 C145 129 173 123 205 103 C222 93 236 90 248 92" />
+                    <path class="preview-neuro-field" d="M34 63 C64 77 92 75 119 62 C151 46 178 54 207 72 C222 81 236 83 248 78" />
+                    <path class="preview-neuro-dendrite" d="M74 93 C58 85 47 74 37 60M58 78 C47 79 38 74 29 67M60 82 C50 93 40 100 27 105M75 87 C68 71 69 58 76 42M69 64 C60 57 55 50 52 39M75 64 C86 57 93 48 98 37" />
+                    <path class="preview-neuro-dendrite" d="M138 71 C124 62 116 51 111 37M126 58 C115 58 106 52 98 45M140 67 C151 54 160 45 173 39M153 54 C163 58 171 57 181 52M135 78 C119 85 107 94 95 108M118 91 C106 88 95 91 84 99" />
+                    <path class="preview-neuro-dendrite" d="M184 106 C171 95 166 84 164 70M171 89 C160 87 151 81 142 73M187 101 C203 88 216 81 232 76M209 85 C219 91 229 91 239 88M183 112 C170 123 159 132 144 139M164 126 C154 123 144 126 134 133M190 114 C201 128 208 139 213 153" />
+                    <path class="preview-neuro-axon" d="M82 96 C108 94 123 83 140 76 C160 69 172 83 184 104" />
+                    <path class="preview-neuro-terminal" d="M181 104 C168 111 158 116 145 123M185 107 C172 119 164 129 158 143M188 104 C204 104 216 108 230 116" />
+                    <path class="preview-neuro-cell" d="M70 89 C75 84 83 86 86 93 C89 101 83 107 75 106 C67 105 63 98 65 92 C66 91 68 90 70 89Z" />
+                    <path class="preview-neuro-cell" d="M134 65 C140 61 148 64 150 71 C152 78 146 83 139 82 C131 81 128 74 130 68 C131 67 132 66 134 65Z" />
+                    <path class="preview-neuro-cell" d="M180 99 C186 94 194 97 196 104 C198 111 192 116 185 115 C177 114 174 108 176 102 C177 101 178 100 180 99Z" />
+                    <circle class="preview-neuro-core" cx="77" cy="96" r="0.95" />
+                    <circle class="preview-neuro-core" cx="140" cy="72" r="0.8" />
+                    <circle class="preview-neuro-core" cx="185" cy="106" r="0.85" />
+                    <circle class="preview-neuro-synapse" cx="145" cy="123" r="1.7" />
+                    <circle class="preview-neuro-synapse" cx="158" cy="143" r="1.5" />
+                    <circle class="preview-neuro-synapse" cx="230" cy="116" r="1.7" />
+                    <circle class="preview-neuro-signal" cx="118" cy="87" r="1.5" />
+                    <circle class="preview-neuro-signal" cx="169" cy="83" r="1.5" />
+                    <path class="preview-neuro-pulse" d="M92 94 C114 91 128 82 145 76" />
+                  </svg>
                 </span>
               </button>
             </article>
 
             <article class="featured-card reveal" id="kerr-jp">
               <button class="project-card-button" type="button" data-project="kerr-jp" aria-expanded="false" aria-controls="project-drawer">
-                <span class="project-card-top">
+                <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">02</span>
+                </span>
+                <span class="project-card-copy">
                   <span class="project-category">Computational Physics / Numerical Relativity</span>
-                </span>
-                <span class="project-card-main">
-                  <span class="project-card-copy">
-                    <span class="project-card-title">Kerr / JP Diagnostics</span>
-                    <span class="project-card-text">
-                      Python research pipeline for black-hole null-geodesic capture-escape boundaries, using adaptive refinement-tree topology to reveal local JP deformation response hidden by global summaries.
-                    </span>
-                    <span class="project-tags" aria-label="Technologies">
-                      <span>Python</span><span>Null Geodesics</span><span>Kerr Spacetime</span><span>Adaptive Refinement</span><span>CSV/JSON</span><span>LaTeX</span>
-                    </span>
+                  <span class="project-card-title">Kerr / JP Diagnostics</span>
+                  <span class="project-card-text">
+                    Python research pipeline for black-hole null-geodesic capture-escape boundaries, using adaptive refinement-tree topology to reveal local JP deformation response hidden by global summaries.
                   </span>
-                  <span class="project-preview project-preview--kerr" aria-hidden="true">
-                    <svg viewBox="0 0 260 180">
-                      <path class="preview-ray-faint" d="M9 48 C60 46 98 52 122 67 C132 73 136 80 137 85" />
-                      <path class="preview-ray-faint" d="M165 69 C182 58 213 50 251 47" />
-                      <path class="preview-ray" d="M8 75 C58 72 96 76 121 84 C133 88 138 81 145 69" />
-                      <path class="preview-ray" d="M158 68 C166 80 183 81 252 76" />
-                      <path class="preview-ray" d="M8 111 C58 114 96 110 121 99 C134 94 138 100 145 112" />
-                      <path class="preview-ray" d="M158 112 C168 101 187 102 252 111" />
-                      <path class="preview-ray-faint" d="M12 141 C64 140 99 129 123 112 C132 106 137 101 139 96" />
-                      <path class="preview-ray-faint" d="M165 108 C188 124 218 136 248 140" />
-                      <path class="preview-capture-ray" d="M13 95 C58 93 94 90 117 86 C131 83 138 74 137 67 C136 59 126 60 122 68 C117 79 126 91 142 91" />
-                      <path class="preview-capture-ray preview-capture-ray--lower" d="M23 125 C70 123 103 115 124 103 C137 95 143 100 142 111 C141 122 128 126 123 116" />
-                      <path class="preview-refinement-arc" d="M112 49 C130 35 158 33 177 47M111 131 C131 148 160 148 181 132" />
-                      <circle class="preview-shadow-mask" cx="148" cy="90" r="23" />
-                      <circle class="preview-accretion-ring" cx="148" cy="90" r="39" />
-                      <circle class="preview-photon-ring" cx="148" cy="90" r="28" />
-                      <circle class="preview-hole-core" cx="148" cy="90" r="19" />
-                      <path class="preview-ergo-glint" d="M128 78 C137 68 158 66 169 79" />
-                      <circle class="preview-hole-dot" cx="142" cy="85" r="2" />
-                    </svg>
+                  <span class="project-meta" aria-label="Technologies">Python&ensp;·&ensp;Null Geodesics&ensp;·&ensp;Kerr Spacetime&ensp;·&ensp;Adaptive Refinement&ensp;·&ensp;CSV/JSON&ensp;·&ensp;LaTeX</span>
+                  <span class="project-card-footer">
+                    <span class="project-card-link project-card-link--closed">Read case study</span>
+                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
-                <span class="project-card-footer">
-                  <span class="project-card-link project-card-link--closed">Read case study</span>
-                  <span class="project-card-link project-card-link--open">Hide case study</span>
-                  <span class="toggle-icon" aria-hidden="true"></span>
+                <span class="project-preview project-preview--kerr" aria-hidden="true">
+                  <svg viewBox="0 0 260 180">
+                    <path class="preview-ray-faint" d="M9 48 C60 46 98 52 122 67 C132 73 136 80 137 85" />
+                    <path class="preview-ray-faint" d="M165 69 C182 58 213 50 251 47" />
+                    <path class="preview-ray" d="M8 75 C58 72 96 76 121 84 C133 88 138 81 145 69" />
+                    <path class="preview-ray" d="M158 68 C166 80 183 81 252 76" />
+                    <path class="preview-ray" d="M8 111 C58 114 96 110 121 99 C134 94 138 100 145 112" />
+                    <path class="preview-ray" d="M158 112 C168 101 187 102 252 111" />
+                    <path class="preview-ray-faint" d="M12 141 C64 140 99 129 123 112 C132 106 137 101 139 96" />
+                    <path class="preview-ray-faint" d="M165 108 C188 124 218 136 248 140" />
+                    <path class="preview-capture-ray" d="M13 95 C58 93 94 90 117 86 C131 83 138 74 137 67 C136 59 126 60 122 68 C117 79 126 91 142 91" />
+                    <path class="preview-capture-ray preview-capture-ray--lower" d="M23 125 C70 123 103 115 124 103 C137 95 143 100 142 111 C141 122 128 126 123 116" />
+                    <path class="preview-refinement-arc" d="M112 49 C130 35 158 33 177 47M111 131 C131 148 160 148 181 132" />
+                    <circle class="preview-shadow-mask" cx="148" cy="90" r="23" />
+                    <circle class="preview-accretion-ring" cx="148" cy="90" r="39" />
+                    <circle class="preview-photon-ring" cx="148" cy="90" r="28" />
+                    <circle class="preview-hole-core" cx="148" cy="90" r="19" />
+                    <path class="preview-ergo-glint" d="M128 78 C137 68 158 66 169 79" />
+                    <circle class="preview-hole-dot" cx="142" cy="85" r="2" />
+                  </svg>
                 </span>
               </button>
             </article>
 
             <article class="featured-card reveal" id="motorproof">
               <button class="project-card-button" type="button" data-project="motorproof" aria-expanded="false" aria-controls="project-drawer">
-                <span class="project-card-top">
+                <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">03</span>
+                </span>
+                <span class="project-card-copy">
                   <span class="project-category">Mobile / Backend Systems</span>
-                </span>
-                <span class="project-card-main">
-                  <span class="project-card-copy">
-                    <span class="project-card-title">MotorProof Scout</span>
-                    <span class="project-card-text">
-                      Android-first used-car buying assistant that routes vehicle lookups through a FastAPI backend, keeps DVSA credentials server-side, and turns MOT evidence into buyer briefs, saved-car comparisons, proof tracking, and viewing checklists.
-                    </span>
-                    <span class="project-tags" aria-label="Technologies">
-                      <span>FastAPI</span><span>Android/Kotlin</span><span>Jetpack Compose</span><span>PostgreSQL</span><span>Docker Compose</span><span>DVSA API</span>
-                    </span>
+                  <span class="project-card-title">MotorProof Scout</span>
+                  <span class="project-card-text">
+                    Android-first used-car buying assistant that routes vehicle lookups through a FastAPI backend, keeps DVSA credentials server-side, and turns MOT evidence into buyer briefs, saved-car comparisons, proof tracking, and viewing checklists.
                   </span>
-                  <span class="project-preview project-preview--motorproof" aria-hidden="true">
-                    <svg viewBox="0 0 260 180">
-                      <path class="preview-thread" d="M18 47h224M18 133h224" />
-                      <path class="preview-lane" d="M20 69h220M20 90h220M20 111h220" />
-                      <path class="preview-thread dashed" d="M28 58h204M28 79h204M28 101h204M28 122h204" />
-                      <path class="preview-traffic-packet" d="M46 64h25" />
-                      <path class="preview-traffic-packet preview-traffic-packet--muted" d="M103 85h21" />
-                      <path class="preview-traffic-packet preview-traffic-packet--signal" d="M171 64h24" />
-                      <path class="preview-traffic-packet preview-traffic-packet--warm" d="M68 106h28" />
-                      <path class="preview-traffic-packet preview-traffic-packet--signal" d="M164 106h27" />
-                      <path class="preview-traffic-packet preview-traffic-packet--muted" d="M208 127h25" />
-                      <path class="preview-traffic-spark" d="M74 61h7M130 82h8M196 61h6M101 103h8M154 103h7M235 124h6" />
-                    </svg>
+                  <span class="project-meta" aria-label="Technologies">FastAPI&ensp;·&ensp;Android/Kotlin&ensp;·&ensp;Jetpack Compose&ensp;·&ensp;PostgreSQL&ensp;·&ensp;Docker Compose&ensp;·&ensp;DVSA API</span>
+                  <span class="project-card-footer">
+                    <span class="project-card-link project-card-link--closed">Read case study</span>
+                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
-                <span class="project-card-footer">
-                  <span class="project-card-link project-card-link--closed">Read case study</span>
-                  <span class="project-card-link project-card-link--open">Hide case study</span>
-                  <span class="toggle-icon" aria-hidden="true"></span>
+                <span class="project-preview project-preview--motorproof" aria-hidden="true">
+                  <svg viewBox="0 0 260 180">
+                    <path class="preview-thread" d="M18 47h224M18 133h224" />
+                    <path class="preview-lane" d="M20 69h220M20 90h220M20 111h220" />
+                    <path class="preview-thread dashed" d="M28 58h204M28 79h204M28 101h204M28 122h204" />
+                    <path class="preview-traffic-packet" d="M46 64h25" />
+                    <path class="preview-traffic-packet preview-traffic-packet--muted" d="M103 85h21" />
+                    <path class="preview-traffic-packet preview-traffic-packet--signal" d="M171 64h24" />
+                    <path class="preview-traffic-packet preview-traffic-packet--warm" d="M68 106h28" />
+                    <path class="preview-traffic-packet preview-traffic-packet--signal" d="M164 106h27" />
+                    <path class="preview-traffic-packet preview-traffic-packet--muted" d="M208 127h25" />
+                    <path class="preview-traffic-spark" d="M74 61h7M130 82h8M196 61h6M101 103h8M154 103h7M235 124h6" />
+                  </svg>
                 </span>
               </button>
             </article>
 
             <article class="featured-card reveal" id="supplement">
               <button class="project-card-button" type="button" data-project="supplement" aria-expanded="false" aria-controls="project-drawer">
-                <span class="project-card-top">
+                <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">04</span>
+                </span>
+                <span class="project-card-copy">
                   <span class="project-category">Trust-first Web App / Decision Support</span>
-                </span>
-                <span class="project-card-main">
-                  <span class="project-card-copy">
-                    <span class="project-card-title">Supplement Guidance Platform</span>
-                    <span class="project-card-text">
-                      Deterministic supplement guidance web app with structured intake, safety gates, reviewed evidence boundaries, and separated optional product examples.
-                    </span>
-                    <span class="project-tags" aria-label="Technologies">
-                      <span>FastAPI</span><span>Python</span><span>Deterministic Rules</span><span>Evidence Workflow</span><span>Safety Gates</span><span>Web UX</span>
-                    </span>
+                  <span class="project-card-title">Supplement Guidance Platform</span>
+                  <span class="project-card-text">
+                    Deterministic supplement guidance web app with structured intake, safety gates, reviewed evidence boundaries, and separated optional product examples.
                   </span>
-                  <span class="project-preview project-preview--supplement" aria-hidden="true">
-                    <svg viewBox="0 0 260 180">
-                      <path class="preview-thread dashed" d="M35 45h38M35 91h38M35 137h38" />
-                      <path class="preview-pill" d="M42 59a9 9 0 0 1 13-13l17 17a9 9 0 0 1-13 13Z" />
-                      <path class="preview-pill" d="M47 102h23v30H47zM52 94h13v8M52 112h13M52 122h9" />
-                      <circle class="preview-pill preview-tablet" cx="61" cy="148" r="9" />
-                      <path class="preview-route" d="M78 66 C91 66 96 74 105 80" />
-                      <path class="preview-route" d="M78 116 C91 116 96 106 105 100" />
-                      <path class="preview-route dashed" d="M75 148 C93 143 97 128 107 112" />
-                      <path class="preview-core" d="M108 58h48a10 10 0 0 1 10 10v48a10 10 0 0 1-10 10h-48a10 10 0 0 1-10-10V68a10 10 0 0 1 10-10Z" />
-                      <path class="preview-signal" d="M118 76h28M118 92h18M118 108h24" />
-                      <circle class="preview-node" cx="151" cy="76" r="3.5" />
-                      <circle class="preview-node" cx="143" cy="108" r="3.5" />
-                      <path class="preview-route" d="M166 78 C178 66 187 61 203 59" />
-                      <path class="preview-route" d="M166 96 C181 96 188 96 203 96" />
-                      <path class="preview-route dashed" d="M166 115 C180 124 186 132 199 137" />
-                      <path class="preview-doc" d="M201 42h22l10 10v29h-32zM223 42v11h10M208 59h14M208 70h10" />
-                      <path class="preview-safe" d="M201 95l7 7 19-21" />
-                      <path class="preview-warning" d="M198 140l11-20 11 20h-22zM209 128v5" />
-                      <path class="preview-product dashed" d="M177 146h51v18h-51zM185 155h18M210 155h10" />
-                    </svg>
+                  <span class="project-meta" aria-label="Technologies">FastAPI&ensp;·&ensp;Python&ensp;·&ensp;Deterministic Rules&ensp;·&ensp;Evidence Workflow&ensp;·&ensp;Safety Gates&ensp;·&ensp;Web UX</span>
+                  <span class="project-card-footer">
+                    <span class="project-card-link project-card-link--closed">Read case study</span>
+                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
-                <span class="project-card-footer">
-                  <span class="project-card-link project-card-link--closed">Read case study</span>
-                  <span class="project-card-link project-card-link--open">Hide case study</span>
-                  <span class="toggle-icon" aria-hidden="true"></span>
+                <span class="project-preview project-preview--supplement" aria-hidden="true">
+                  <svg viewBox="0 0 260 180">
+                    <path class="preview-thread dashed" d="M35 45h38M35 91h38M35 137h38" />
+                    <path class="preview-pill" d="M42 59a9 9 0 0 1 13-13l17 17a9 9 0 0 1-13 13Z" />
+                    <path class="preview-pill" d="M47 102h23v30H47zM52 94h13v8M52 112h13M52 122h9" />
+                    <circle class="preview-pill preview-tablet" cx="61" cy="148" r="9" />
+                    <path class="preview-route" d="M78 66 C91 66 96 74 105 80" />
+                    <path class="preview-route" d="M78 116 C91 116 96 106 105 100" />
+                    <path class="preview-route dashed" d="M75 148 C93 143 97 128 107 112" />
+                    <path class="preview-core" d="M108 58h48a10 10 0 0 1 10 10v48a10 10 0 0 1-10 10h-48a10 10 0 0 1-10-10V68a10 10 0 0 1 10-10Z" />
+                    <path class="preview-signal" d="M118 76h28M118 92h18M118 108h24" />
+                    <circle class="preview-node" cx="151" cy="76" r="3.5" />
+                    <circle class="preview-node" cx="143" cy="108" r="3.5" />
+                    <path class="preview-route" d="M166 78 C178 66 187 61 203 59" />
+                    <path class="preview-route" d="M166 96 C181 96 188 96 203 96" />
+                    <path class="preview-route dashed" d="M166 115 C180 124 186 132 199 137" />
+                    <path class="preview-doc" d="M201 42h22l10 10v29h-32zM223 42v11h10M208 59h14M208 70h10" />
+                    <path class="preview-safe" d="M201 95l7 7 19-21" />
+                    <path class="preview-warning" d="M198 140l11-20 11 20h-22zM209 128v5" />
+                    <path class="preview-product dashed" d="M177 146h51v18h-51zM185 155h18M210 155h10" />
+                  </svg>
                 </span>
               </button>
             </article>
-          </div>
 
-          <div class="project-drawer" id="project-drawer" hidden>
-            <div class="drawer-surface">
-              <div class="drawer-head">
-                <div class="drawer-head-copy">
-                  <p class="eyebrow" id="project-drawer-kicker">Case study</p>
-                  <h3 id="project-drawer-title" tabindex="-1">Selected project</h3>
+            <div class="project-drawer" id="project-drawer" hidden>
+              <div class="drawer-surface">
+                <div class="drawer-head">
+                  <div class="drawer-head-copy">
+                    <p class="eyebrow" id="project-drawer-kicker">Case study</p>
+                    <h3 id="project-drawer-title" tabindex="-1">Selected project</h3>
+                  </div>
+                  <button class="drawer-close" type="button" aria-label="Close case study">
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M6 6 14 14" />
+                      <path d="M14 6 6 14" />
+                    </svg>
+                  </button>
                 </div>
-                <button class="drawer-close" type="button" aria-label="Close case study">
-                  <svg viewBox="0 0 20 20" aria-hidden="true">
-                    <path d="M6 6 14 14" />
-                    <path d="M14 6 6 14" />
-                  </svg>
-                </button>
-              </div>
 
-              <div class="drawer-layout">
-                <div class="drawer-visual-panel" data-project-visual-panel>
-                  <canvas class="drawer-visual-canvas" data-project-visual></canvas>
+                <div class="drawer-layout">
+                  <div class="drawer-visual-panel" data-project-visual-panel>
+                    <canvas class="drawer-visual-canvas" data-project-visual></canvas>
+                  </div>
+                  <div class="drawer-stage" id="project-drawer-content"></div>
                 </div>
-                <div class="drawer-stage" id="project-drawer-content"></div>
               </div>
             </div>
           </div>
@@ -520,55 +353,65 @@
             </div>
           </div>
 
-          <div class="secondary-grid" data-reveal-group>
-            <article class="mini-card reveal">
-              <div class="mini-visual mini-visual--rail" aria-hidden="true">
-                <span></span><span></span><span></span><span></span>
+          <div class="archive-list" data-reveal-group>
+            <article class="archive-row reveal">
+              <span class="archive-index" aria-hidden="true">01</span>
+              <div class="archive-name">
+                <p class="card-kicker">Local-first orchestration</p>
+                <h3>RunForge</h3>
               </div>
-              <p class="card-kicker">Local-first orchestration</p>
-              <h3>RunForge</h3>
-              <p>Local-first orchestration platform for queued work, retries, event logs, and inspectable background execution.</p>
-              <p class="mini-note">FastAPI / PostgreSQL / Docker / WebSockets / Workers</p>
+              <p class="archive-desc">Local-first orchestration platform for queued work, retries, event logs, and inspectable background execution.</p>
+              <p class="archive-stack">FastAPI / PostgreSQL / Docker / WebSockets / Workers</p>
             </article>
 
-            <article class="mini-card reveal">
-              <div class="mini-visual" aria-hidden="true"><svg><use href="#sym-terminal"></use></svg></div>
-              <p class="card-kicker">C++ engine</p>
-              <h3>ChronoCore</h3>
-              <p>C++20 chess engine with FEN support, legal move generation, perft tooling, search, and UCI interoperability.</p>
-              <p class="mini-note">C++20 / UCI / Perft / Search</p>
+            <article class="archive-row reveal">
+              <span class="archive-index" aria-hidden="true">02</span>
+              <div class="archive-name">
+                <p class="card-kicker">C++ engine</p>
+                <h3>ChronoCore</h3>
+              </div>
+              <p class="archive-desc">C++20 chess engine with FEN support, legal move generation, perft tooling, search, and UCI interoperability.</p>
+              <p class="archive-stack">C++20 / UCI / Perft / Search</p>
             </article>
 
-            <article class="mini-card reveal">
-              <div class="mini-visual" aria-hidden="true"><svg><use href="#sym-graph"></use></svg></div>
-              <p class="card-kicker">Monitoring research</p>
-              <h3>Stablecoin depeg monitor</h3>
-              <p>Feature-based monitor for checking USDT and USDC depeg conditions and storing inference outputs.</p>
-              <p class="mini-note">Python / Monitoring / Inference</p>
+            <article class="archive-row reveal">
+              <span class="archive-index" aria-hidden="true">03</span>
+              <div class="archive-name">
+                <p class="card-kicker">Monitoring research</p>
+                <h3>Stablecoin depeg monitor</h3>
+              </div>
+              <p class="archive-desc">Feature-based monitor for checking USDT and USDC depeg conditions and storing inference outputs.</p>
+              <p class="archive-stack">Python / Monitoring / Inference</p>
             </article>
 
-            <article class="mini-card reveal">
-              <div class="mini-visual" aria-hidden="true"><svg><use href="#sym-database"></use></svg></div>
-              <p class="card-kicker">Research tooling</p>
-              <h3>MNQ research tooling</h3>
-              <p>Research-only tooling for setup detection, labeling, chart review, and market microstructure experiments around MNQ data.</p>
-              <p class="mini-note">Python / DuckDB / Charts</p>
+            <article class="archive-row reveal">
+              <span class="archive-index" aria-hidden="true">04</span>
+              <div class="archive-name">
+                <p class="card-kicker">Research tooling</p>
+                <h3>MNQ research tooling</h3>
+              </div>
+              <p class="archive-desc">Research-only tooling for setup detection, labeling, chart review, and market microstructure experiments around MNQ data.</p>
+              <p class="archive-stack">Python / DuckDB / Charts</p>
             </article>
 
-            <article class="mini-card reveal">
-              <div class="mini-visual" aria-hidden="true"><svg><use href="#sym-lens"></use></svg></div>
-              <p class="card-kicker">Native Android AR prototype</p>
-              <h3>AirCoaster</h3>
-              <p>Rear-camera AR prototype using ARCore shared camera and MediaPipe hand tracking for object placement, movement, and resizing.</p>
-              <p class="mini-note">Android / ARCore / MediaPipe</p>
+            <article class="archive-row reveal">
+              <span class="archive-index" aria-hidden="true">05</span>
+              <div class="archive-name">
+                <p class="card-kicker">Native Android AR prototype</p>
+                <h3>AirCoaster</h3>
+              </div>
+              <p class="archive-desc">Rear-camera AR prototype using ARCore shared camera and MediaPipe hand tracking for object placement, movement, and resizing.</p>
+              <p class="archive-stack">Android / ARCore / MediaPipe</p>
             </article>
 
-            <article class="mini-card reveal">
-              <div class="mini-visual" aria-hidden="true"><svg><use href="#sym-report"></use></svg></div>
-              <p class="card-kicker">Desktop diagnostics widget</p>
-              <h3>Pulse</h3>
-              <p>Windows-first diagnostics utility built with Tauri, Rust, React, and SQLite for compact local system views.</p>
-              <p class="mini-note">Tauri / Rust / SQLite</p>
+            <article class="archive-row reveal">
+              <span class="archive-index" aria-hidden="true">06</span>
+              <div class="archive-name">
+                <p class="card-kicker">Desktop diagnostics widget</p>
+                <h3>Pulse</h3>
+              </div>
+              <p class="archive-desc">Windows-first diagnostics utility built with Tauri, Rust, React, and SQLite for compact local system views.</p>
+              <p class="archive-stack">Tauri / Rust / SQLite</p>
             </article>
           </div>
         </div>
@@ -605,8 +448,8 @@
             <p>Backend systems, simulation tooling, data pipelines, and computational product engineering.</p>
           </div>
           <div class="footer-links reveal">
-            <a href="mailto:tanayv77@gmail.com">Email</a>
-            <a href="https://www.linkedin.com/in/tanay-veeragandham/" target="_blank" rel="noreferrer">LinkedIn</a>
+            <a class="action action--invert" href="mailto:tanayv77@gmail.com">Email</a>
+            <a class="action action--invert" href="https://www.linkedin.com/in/tanay-veeragandham/" target="_blank" rel="noreferrer">LinkedIn</a>
           </div>
         </div>
       </footer>
