@@ -1167,36 +1167,68 @@ class HeroFieldController {
 
   buildScene() {
     const rand = mulberry32(hashSeed(`hero-${this.width}-${this.height}`));
-    const count = this.width < 580 ? 130 : this.width < 900 ? 230 : 390;
+    const count = this.width < 580 ? 190 : this.width < 900 ? 340 : 680;
     const particles = Array.from({ length: count }, (_, index) => {
       const angle = rand() * Math.PI * 2;
       const radius = Math.sqrt(rand());
-      const centerX = this.width * (0.6 + (rand() - 0.5) * 0.2);
+      const centerX = this.width * (0.64 + (rand() - 0.5) * 0.26);
       const centerY = this.height * 0.5;
-      const baseX = this.width * (0.08 + rand() * 0.9);
+      const baseX = this.width * (0.1 + Math.pow(rand(), 0.56) * 0.88);
+      const baseY = this.height * (0.08 + rand() * 0.84);
+      const fieldWeight = this.rightFieldBias(baseX) * this.heroTextExclusion(baseX, baseY);
       return {
         x: centerX + Math.cos(angle) * radius * this.width * 0.42,
         y: centerY + Math.sin(angle) * radius * this.height * 0.42,
         baseX,
-        baseY: this.height * (0.08 + rand() * 0.84),
-        fade: 0.18 + 0.82 * ease((baseX / this.width - 0.3) / 0.42),
+        baseY,
+        fade: lerp(0.62, 1.06, fieldWeight) * (0.74 + rand() * 0.58),
         vx: 0,
         vy: 0,
-        size: rand() > 0.82 ? 2.2 + rand() * 1.8 : 0.9 + rand() * 1.4,
+        size: rand() > 0.82 ? 1.85 + rand() * 1.8 : 0.68 + rand() * 1.36,
         phase: rand() * Math.PI * 2,
-        kind: rand() > 0.74 ? "dash" : "point",
+        kind: rand() > 0.66 ? "dash" : "point",
         tint: rand() > 0.93 ? "cool" : rand() > 0.48 ? "gold" : "copper",
         index,
       };
     });
 
-    const anchors = Array.from({ length: 18 }, (_, index) => ({
-      x: this.width * (0.28 + rand() * 0.66),
-      y: this.height * (0.14 + rand() * 0.72),
-      phase: index * 0.52 + rand(),
-    }));
+    const traceAnchors = Array.from({ length: this.width < 580 ? 16 : this.width < 900 ? 24 : 42 }, (_, index) => {
+      let x = 0;
+      let y = 0;
+      let mask = 0;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        x = this.width * (0.34 + Math.pow(rand(), 0.54) * 0.6);
+        y = this.height * (0.11 + rand() * 0.78);
+        mask = this.rightFieldBias(x) * this.heroTextExclusion(x, y);
+        if (mask > 0.3 || attempt === 7) {
+          break;
+        }
+      }
+      return {
+        x,
+        y,
+        mask,
+        size: 0.72 + rand() * 1.55,
+        phase: rand() * Math.PI * 2,
+        tint: index % 7 === 0 ? "cool" : index % 3 === 0 ? "gold" : "copper",
+      };
+    });
 
-    return { particles, anchors };
+    return { particles, traceAnchors };
+  }
+
+  rightFieldBias(x) {
+    return clamp(0.05 + ease((x / this.width - 0.34) / 0.52) * 0.95, 0.05, 1);
+  }
+
+  heroTextExclusion(x, y) {
+    const nx = x / this.width;
+    const ny = y / this.height;
+    const textColumn = ease(1 - nx / 0.5);
+    const textBand = ease(1 - Math.abs(ny - 0.38) / 0.43);
+    const controlBand = ease(1 - Math.abs(ny - 0.72) / 0.18) * ease(1 - nx / 0.46);
+    const exclusion = Math.max(textColumn * textBand, controlBand * 0.86);
+    return clamp(1 - exclusion * 0.94, 0.05, 1);
   }
 
   get mode() {
@@ -1273,7 +1305,7 @@ class HeroFieldController {
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, this.width, this.height);
 
-    this.drawAmbientAnchors(ctx, time);
+    this.drawHeroTraceLinks(ctx, time);
     this.drawTrailNetwork(ctx, time);
     this.drawParticles(ctx, time);
 
@@ -1282,29 +1314,50 @@ class HeroFieldController {
     }
   }
 
-  drawAmbientAnchors(ctx, time) {
-    const anchors = this.scene.anchors;
+  drawHeroTraceLinks(ctx, time) {
+    const anchors = this.scene.traceAnchors || [];
+    if (!anchors.length) {
+      return;
+    }
     ctx.save();
     ctx.lineCap = "round";
-    anchors.forEach((anchor, index) => {
-      const next = anchors[(index * 5 + 3) % anchors.length];
-      const distance = Math.hypot(anchor.x - next.x, anchor.y - next.y);
-      if (distance > this.width * 0.35) {
-        return;
+    ctx.lineJoin = "round";
+    for (let index = 0; index < anchors.length; index += 1) {
+      const anchor = anchors[index];
+      const x = anchor.x + Math.sin(time * 0.18 + anchor.phase) * 2.6;
+      const y = anchor.y + Math.cos(time * 0.16 + anchor.phase) * 2.2;
+      const mask = this.rightFieldBias(x) * this.heroTextExclusion(x, y);
+      const localAlpha = clamp(anchor.mask * mask * 0.14, 0, 0.18);
+      if (localAlpha < 0.012) {
+        continue;
       }
-      ctx.globalAlpha = 0.08 + Math.sin(time * 0.7 + anchor.phase) * 0.025;
-      ctx.strokeStyle = index % 3 === 0 ? "rgba(111, 147, 155, 0.38)" : "rgba(124, 71, 40, 0.34)";
-      ctx.lineWidth = 1;
+
+      ctx.fillStyle = this.color(anchor.tint, localAlpha * 0.72);
       ctx.beginPath();
-      ctx.moveTo(anchor.x, anchor.y);
-      ctx.quadraticCurveTo(
-        (anchor.x + next.x) * 0.5,
-        (anchor.y + next.y) * 0.5 + Math.sin(time + index) * 8,
-        next.x,
-        next.y
-      );
-      ctx.stroke();
-    });
+      ctx.arc(x, y, anchor.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let step = 1; step <= 2; step += 1) {
+        const other = anchors[(index + step * 5) % anchors.length];
+        const ox = other.x + Math.sin(time * 0.16 + other.phase) * 2.2;
+        const oy = other.y + Math.cos(time * 0.14 + other.phase) * 1.9;
+        const distance = Math.hypot(ox - x, oy - y);
+        if (distance > Math.min(this.width * 0.22, 230)) {
+          continue;
+        }
+        const midMask = this.rightFieldBias((x + ox) * 0.5) * this.heroTextExclusion((x + ox) * 0.5, (y + oy) * 0.5);
+        const alpha = clamp((1 - distance / Math.min(this.width * 0.22, 230)) * localAlpha * midMask * 0.8, 0, 0.085);
+        if (alpha < 0.008) {
+          continue;
+        }
+        ctx.strokeStyle = this.color(step === 2 ? "gold" : anchor.tint, alpha);
+        ctx.lineWidth = 0.42;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(ox, oy);
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
@@ -1323,13 +1376,13 @@ class HeroFieldController {
       if (alpha <= 0) {
         continue;
       }
-      ctx.strokeStyle = `rgba(163, 95, 52, ${alpha})`;
-      ctx.lineWidth = 1.2 + alpha * 3;
-      ctx.setLineDash(index % 4 === 0 ? [3, 10] : []);
-      ctx.lineDashOffset = -time * 18;
+      ctx.strokeStyle = `rgba(163, 95, 52, ${alpha * 0.72})`;
+      ctx.lineWidth = 0.72 + alpha * 1.6;
+      ctx.setLineDash(index % 4 === 0 ? [2, 12] : []);
+      ctx.lineDashOffset = -time * 12;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 16, b.x, b.y);
+      ctx.lineTo(b.x, b.y);
       ctx.stroke();
     }
     ctx.setLineDash([]);
@@ -1340,15 +1393,6 @@ class HeroFieldController {
   drawParticles(ctx, time) {
     const modeFactor = this.mode === "idle" ? 0.3 : 0.55;
     const pointerStrength = this.pointer.strength;
-    const nearNodes = Array.from({ length: 7 }, (_, index) => {
-      const angle = (Math.PI * 2 * index) / 7 + time * 0.4;
-      const radius = 34 + (index % 3) * 18;
-      return {
-        x: this.pointer.x + Math.cos(angle) * radius,
-        y: this.pointer.y + Math.sin(angle) * radius,
-      };
-    });
-
     ctx.save();
     ctx.lineCap = "round";
 
@@ -1363,47 +1407,39 @@ class HeroFieldController {
       const distance = Math.hypot(dx, dy);
       const influence = pointerStrength * ease(1 - distance / 190);
       if (influence > 0) {
-        const node = nearNodes[index % nearNodes.length];
-        targetX = lerp(targetX, node.x, influence * 0.88);
-        targetY = lerp(targetY, node.y, influence * 0.88);
+        const orbit = 16 + (particle.index % 5) * 9;
+        const angle = particle.phase + time * 0.16;
+        targetX = lerp(targetX, this.pointer.x + Math.cos(angle) * orbit, influence * 0.68);
+        targetY = lerp(targetY, this.pointer.y + Math.sin(angle) * orbit * 0.62, influence * 0.68);
       }
 
       particle.x += (targetX - particle.x) * (0.035 + influence * 0.08);
       particle.y += (targetY - particle.y) * (0.035 + influence * 0.08);
 
+      const mask = this.rightFieldBias(particle.x) * this.heroTextExclusion(particle.x, particle.y);
       const alpha =
-        (0.18 + particle.size * 0.045 + influence * 0.42 + modeFactor * 0.08) *
-        lerp(particle.fade ?? 1, 1, influence);
-      ctx.strokeStyle = this.color(particle.tint, clamp(alpha, 0.08, 0.82));
-      ctx.fillStyle = this.color(particle.tint, clamp(alpha + 0.04, 0.1, 0.88));
-
+        (0.1 + particle.size * 0.058 + influence * 0.34 + modeFactor * 0.052) *
+        lerp((particle.fade ?? 1) * mask, 1, influence * 0.7);
+      if (alpha < 0.011) {
+        return;
+      }
       if (particle.kind === "dash") {
         const angle = particle.phase + time * 0.2;
-        const length = particle.size * (2.2 + influence * 1.2);
-        ctx.lineWidth = 1.15 + influence * 0.9;
+        const length = particle.size * (2.42 + influence * 1.05);
+        ctx.strokeStyle = this.color(particle.tint, clamp(alpha, 0, 0.5));
+        ctx.lineWidth = 0.64 + influence * 0.46;
         ctx.beginPath();
         ctx.moveTo(particle.x - Math.cos(angle) * length, particle.y - Math.sin(angle) * length);
         ctx.lineTo(particle.x + Math.cos(angle) * length, particle.y + Math.sin(angle) * length);
         ctx.stroke();
       } else {
+        ctx.fillStyle = this.color(particle.tint, clamp(alpha, 0, 0.58));
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size + influence * 1.3, 0, Math.PI * 2);
+        ctx.arc(particle.x, particle.y, particle.size + influence * 1.1, 0, Math.PI * 2);
         ctx.fill();
       }
     });
 
-    if (pointerStrength > 0.04) {
-      ctx.strokeStyle = `rgba(124, 71, 40, ${0.22 * pointerStrength})`;
-      ctx.lineWidth = 1;
-      for (let i = 0; i < nearNodes.length; i += 1) {
-        const a = nearNodes[i];
-        const b = nearNodes[(i + 2) % nearNodes.length];
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
-      }
-    }
     ctx.restore();
   }
 }
@@ -1631,7 +1667,7 @@ class ProjectVisualController {
   buildScene() {
     const rand = mulberry32(hashSeed(`${this.mode}-${this.width}-${this.height}`));
     if (this.mode === "kerr") {
-      const rayCount = this.width < 520 ? 34 : 66;
+      const rayCount = this.width < 520 ? 58 : 122;
       const rays = Array.from({ length: rayCount }, (_, index) => {
         const ray = {
           lane: index / Math.max(rayCount - 1, 1),
@@ -1685,14 +1721,13 @@ class ProjectVisualController {
     const compact = this.width < 520;
     const layout = compact
       ? [
-          [0.24, 0.5, -0.08, 0.95],
-          [0.52, 0.42, 0.06, 1.03],
-          [0.79, 0.56, -0.03, 0.94],
+          [0.32, 0.5, -0.16, 1.02],
+          [0.72, 0.48, 0.08, 0.96],
         ]
       : [
-          [0.22, 0.32, -0.06, 1.05],
-          [0.5, 0.64, 0.1, 1.12],
-          [0.78, 0.36, -0.05, 1.02],
+          [0.24, 0.38, -0.1, 1.08],
+          [0.52, 0.62, 0.08, 1.16],
+          [0.78, 0.36, -0.04, 1.02],
         ];
     const neurons = layout.map(([x, y, angle, scale], index) => (
       this.buildNeuroPathNeuron(
@@ -1704,103 +1739,108 @@ class ProjectVisualController {
         index
       )
     ));
-    const connectionPairs = compact
-      ? [[0, 1], [1, 2]]
-      : [[0, 1], [1, 2]];
-    const connections = connectionPairs.map(([from, to], index) => (
-      this.buildNeuroPathConnection(rand, neurons[from], neurons[to], from, to, index)
-    ));
+    const dormantParticles = Array.from({ length: compact ? 34 : 72 }, () => {
+      const homeX = this.width * (0.12 + rand() * 0.76);
+      const homeY = this.height * (0.14 + rand() * 0.72);
+      return {
+        x: homeX,
+        y: homeY,
+        homeX,
+        homeY,
+        phase: rand() * Math.PI * 2,
+        size: 0.45 + rand() * 0.7,
+        charge: 0,
+        tint: rand() > 0.86 ? "cool" : rand() > 0.58 ? "gold" : "copper",
+      };
+    });
     return {
       neurons,
-      connections,
+      connections: [],
       dynamicNeurons: [],
       dynamicConnections: [],
+      decayParticles: [],
+      dormantParticles,
+      rand,
       relay: Array.from({ length: neurons.length }, () => 0),
       lastSpawnTime: -20,
       lastSpawnX: -999,
       lastSpawnY: -999,
-      dust: Array.from({ length: compact ? 18 : 28 }, () => ({
-        x: rand(),
-        y: rand(),
-        phase: rand() * Math.PI * 2,
-        size: 0.42 + rand() * 0.82,
-        tint: rand() > 0.9 ? "cool" : rand() > 0.62 ? "gold" : "copper",
-      })),
+      lastBridgeTime: -20,
     };
   }
 
   buildNeuroPathNeuron(rand, x, y, axonAngle, scale, index, profile = "static") {
     const dynamicProfile = profile === "dynamic";
-    const size = (dynamicProfile ? 9 + rand() * 1.05 : 8.7 + rand() * 1.7) * scale;
+    const size = (dynamicProfile ? 10.2 + rand() * 2.4 : 12.2 + rand() * 3.2) * scale;
     const compact = this.width < 520;
-    const dendriteCount = dynamicProfile ? (compact ? 3 : 4) : (compact ? 5 : 7);
+    const dendriteCount = dynamicProfile ? (compact ? 5 : 7) : (compact ? 8 : 11);
     const dendrites = Array.from({ length: dendriteCount }, (_, branchIndex) => {
       const fan = dendriteCount > 1 ? (branchIndex / (dendriteCount - 1) - 0.5) : 0;
-      const fanSpread = dynamicProfile ? Math.PI * 0.92 : Math.PI * 1.82;
-      const angle = axonAngle + Math.PI + fan * fanSpread + (rand() - 0.5) * (dynamicProfile ? 0.09 : 0.28);
-      const length = (dynamicProfile ? 22 + rand() * 12 : 36 + rand() * 32) * scale;
+      const fanSpread = dynamicProfile ? Math.PI * 1.92 : Math.PI * 2.16;
+      const angle = axonAngle + Math.PI + fan * fanSpread + (rand() - 0.5) * (dynamicProfile ? 0.32 : 0.38);
+      const length = (dynamicProfile ? 44 + rand() * 42 : 62 + rand() * 60) * scale;
       const startX = x + Math.cos(angle) * size * 0.96;
       const startY = y + Math.sin(angle) * size * 0.78;
-      const endX = startX + Math.cos(angle) * length;
-      const endY = startY + Math.sin(angle) * length;
-      const bend = (rand() - 0.5) * length * (dynamicProfile ? 0.18 : 0.42);
+      const endX = clamp(startX + Math.cos(angle) * length, 10, this.width - 10);
+      const endY = clamp(startY + Math.sin(angle) * length, 12, this.height - 12);
+      const bend = (rand() - 0.5) * length * (dynamicProfile ? 0.62 : 0.58);
       const curve = {
         x1: startX,
         y1: startY,
-        cx: startX + Math.cos(angle) * length * 0.48 + Math.cos(angle + Math.PI * 0.5) * bend,
-        cy: startY + Math.sin(angle) * length * 0.48 + Math.sin(angle + Math.PI * 0.5) * bend,
+        cx: startX + Math.cos(angle) * length * (0.42 + rand() * 0.16) + Math.cos(angle + Math.PI * 0.5) * bend,
+        cy: startY + Math.sin(angle) * length * (0.42 + rand() * 0.16) + Math.sin(angle + Math.PI * 0.5) * bend,
         x2: endX,
         y2: endY,
       };
-      const forkCount = dynamicProfile ? 0 : (compact ? 1 : (rand() > 0.35 ? 2 : 1));
+      const forkCount = dynamicProfile ? (compact ? 1 : (rand() > 0.36 ? 2 : 1)) : (compact ? 2 : (rand() > 0.34 ? 3 : 2));
       const forks = Array.from({ length: forkCount }, (_, forkIndex) => {
-        const at = dynamicProfile ? 0.52 + rand() * 0.24 : 0.38 + rand() * 0.38;
+        const at = dynamicProfile ? 0.46 + rand() * 0.34 : 0.42 + rand() * 0.42;
         const origin = this.curvePoint(curve, at);
-        const forkAngle = angle + (forkIndex % 2 === 0 ? 1 : -1) * (0.34 + rand() * 0.26);
-        const forkLength = (dynamicProfile ? 6 + rand() * 8 : 12 + rand() * 19) * scale;
+        const forkAngle = angle + (forkIndex % 2 === 0 ? 1 : -1) * (0.5 + rand() * 0.46);
+        const forkLength = (dynamicProfile ? 17 + rand() * 22 : 18 + rand() * 28) * scale;
         return {
           x1: origin.x,
           y1: origin.y,
-          cx: origin.x + Math.cos(forkAngle) * forkLength * 0.46 + Math.cos(forkAngle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 6),
-          cy: origin.y + Math.sin(forkAngle) * forkLength * 0.46 + Math.sin(forkAngle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 6),
-          x2: origin.x + Math.cos(forkAngle) * forkLength,
-          y2: origin.y + Math.sin(forkAngle) * forkLength,
+          cx: origin.x + Math.cos(forkAngle) * forkLength * 0.48 + Math.cos(forkAngle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 15 : 14),
+          cy: origin.y + Math.sin(forkAngle) * forkLength * 0.48 + Math.sin(forkAngle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 15 : 14),
+          x2: clamp(origin.x + Math.cos(forkAngle) * forkLength, 10, this.width - 10),
+          y2: clamp(origin.y + Math.sin(forkAngle) * forkLength, 12, this.height - 12),
           delay: (dynamicProfile ? 0.28 : 0.22) + branchIndex * 0.04 + forkIndex * 0.07 + rand() * 0.05,
         };
       });
       return {
         curve,
         forks,
-        width: (dynamicProfile ? 0.66 : 0.64) + rand() * 0.16,
+        width: (dynamicProfile ? 0.94 : 0.68) + rand() * (dynamicProfile ? 0.22 : 0.18),
         delay: (dynamicProfile ? 0.08 : 0.04) + branchIndex * 0.042 + rand() * 0.04,
         phase: rand() * Math.PI * 2,
       };
     });
     const axonLength = Math.min(
-      this.width * (dynamicProfile ? 0.18 : 0.34),
-      (dynamicProfile ? 66 + rand() * 20 : 122 + rand() * 44) * scale
+      this.width * (dynamicProfile ? 0.34 : 0.38),
+      (dynamicProfile ? 118 + rand() * 72 : 154 + rand() * 68) * scale
     );
-    const axonBend = (rand() - 0.5) * (dynamicProfile ? 11 : 26);
+    const axonBend = (rand() - 0.5) * (dynamicProfile ? 52 : 42);
     const axon = {
       x1: x + Math.cos(axonAngle) * size * 1.02,
       y1: y + Math.sin(axonAngle) * size * 0.84,
       cx: x + Math.cos(axonAngle) * axonLength * 0.56 + Math.cos(axonAngle + Math.PI * 0.5) * axonBend,
       cy: y + Math.sin(axonAngle) * axonLength * 0.56 + Math.sin(axonAngle + Math.PI * 0.5) * axonBend,
-      x2: x + Math.cos(axonAngle) * axonLength,
-      y2: y + Math.sin(axonAngle) * axonLength,
+      x2: clamp(x + Math.cos(axonAngle) * axonLength, 12, this.width - 12),
+      y2: clamp(y + Math.sin(axonAngle) * axonLength, 12, this.height - 12),
     };
-    const terminalAngles = dynamicProfile ? [0.04] : [-0.34, -0.08, 0.18, 0.42];
+    const terminalAngles = dynamicProfile ? [-0.22, 0.02, 0.26] : [-0.48, -0.22, 0.02, 0.26, 0.52];
     const terminals = terminalAngles.map((offset, terminalIndex) => {
       const base = this.curvePoint(axon, 0.86);
       const angle = axonAngle + offset + (rand() - 0.5) * 0.12;
-      const length = (dynamicProfile ? 9 + rand() * 7 : 20 + rand() * 15) * scale;
+      const length = (dynamicProfile ? 15 + rand() * 13 : 20 + rand() * 15) * scale;
       return {
         x1: base.x,
         y1: base.y,
-        cx: base.x + Math.cos(angle) * length * 0.55 + Math.cos(angle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 8),
-        cy: base.y + Math.sin(angle) * length * 0.55 + Math.sin(angle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 3 : 8),
-        x2: base.x + Math.cos(angle) * length,
-        y2: base.y + Math.sin(angle) * length,
+        cx: base.x + Math.cos(angle) * length * 0.55 + Math.cos(angle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 11 : 12),
+        cy: base.y + Math.sin(angle) * length * 0.55 + Math.sin(angle + Math.PI * 0.5) * (rand() - 0.5) * (dynamicProfile ? 11 : 12),
+        x2: clamp(base.x + Math.cos(angle) * length, 10, this.width - 10),
+        y2: clamp(base.y + Math.sin(angle) * length, 12, this.height - 12),
         delay: (dynamicProfile ? 0.52 : 0.48) + terminalIndex * 0.05 + rand() * 0.07,
       };
     });
@@ -1902,6 +1942,38 @@ class ProjectVisualController {
     return targets;
   }
 
+  neuroPathAttractionPoint(x, y, neurons) {
+    let best = null;
+    let bestDistance = Infinity;
+    for (let i = 0; i < neurons.length; i += 1) {
+      const neuron = neurons[i];
+      const candidates = [
+        { x: neuron.x, y: neuron.y },
+        this.curvePoint(neuron.axon, 0.45),
+        this.curvePoint(neuron.axon, 0.74),
+      ];
+      neuron.terminals.forEach((terminal) => {
+        candidates.push({ x: terminal.x2, y: terminal.y2 });
+      });
+      neuron.dendrites.forEach((branch) => {
+        candidates.push(this.curvePoint(branch.curve, 0.48));
+        candidates.push(this.curvePoint(branch.curve, 0.82));
+        branch.forks.forEach((fork) => {
+          candidates.push(this.curvePoint(fork, 0.74));
+        });
+      });
+      for (let j = 0; j < candidates.length; j += 1) {
+        const candidate = candidates[j];
+        const distance = Math.hypot(candidate.x - x, candidate.y - y);
+        if (distance < bestDistance) {
+          best = candidate;
+          bestDistance = distance;
+        }
+      }
+    }
+    return best;
+  }
+
   buildNeuroPathDirectConnection(rand, fromNeuron, toNeuron, born, life) {
     const targets = this.neuroPathContactTargets(toNeuron);
     let terminal = fromNeuron.terminals[0];
@@ -1919,7 +1991,7 @@ class ProjectVisualController {
       });
     });
     const terminalDistance = Math.hypot(target.x - terminal.x2, target.y - terminal.y2);
-    if (terminalDistance > Math.min(this.width * 0.15, 145)) {
+    if (terminalDistance > Math.min(this.width * 0.34, 238)) {
       return null;
     }
     const midX = (terminal.x2 + target.x) * 0.5;
@@ -1957,6 +2029,97 @@ class ProjectVisualController {
     };
   }
 
+  buildNeuroPathBridgeConnection(rand, fromNeuron, toNeuron, born) {
+    const terminal = fromNeuron.terminals[Math.floor(rand() * fromNeuron.terminals.length) % fromNeuron.terminals.length];
+    const targets = this.neuroPathContactTargets(toNeuron);
+    const target = targets[Math.floor(rand() * targets.length) % targets.length];
+    const dx = target.x - terminal.x2;
+    const dy = target.y - terminal.y2;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const bend = clamp(distance * 0.18, 18, 48) * (rand() > 0.5 ? 1 : -1);
+    return {
+      fromNeuron,
+      toNeuron,
+      born,
+      life: 3.1 + rand() * 1.8,
+      phase: rand() * Math.PI * 2,
+      readyDelay: 0.08 + rand() * 0.16,
+      contact: {
+        nx: target.nx,
+        ny: target.ny,
+        dendrite: target.dendrite,
+        fork: target.fork,
+        soma: target.soma,
+      },
+      curve: {
+        x1: terminal.x2,
+        y1: terminal.y2,
+        cx: (terminal.x2 + target.x) * 0.5 + (-dy / distance) * bend,
+        cy: (terminal.y2 + target.y) * 0.5 + (dx / distance) * bend,
+        x2: target.x,
+        y2: target.y,
+      },
+    };
+  }
+
+  maybeBridgeNeuroPathNeurons(time) {
+    const scene = this.scene;
+    if (!scene || time - scene.lastBridgeTime < 0.92) {
+      return;
+    }
+    const allNeurons = scene.neurons.concat(scene.dynamicNeurons);
+    const activeNeurons = allNeurons.filter((neuron) => neuron.activity > 0.08);
+    if (activeNeurons.length < 2 && this.pointer.strength < 0.18) {
+      return;
+    }
+    const rand = scene.rand || Math.random;
+    const sourcePool = activeNeurons.length >= 2 ? activeNeurons : allNeurons;
+    const fromNeuron = sourcePool[Math.floor(rand() * sourcePool.length) % sourcePool.length];
+    const candidates = allNeurons
+      .filter((neuron) => neuron !== fromNeuron)
+      .map((neuron) => ({ neuron, distance: Math.hypot(neuron.x - fromNeuron.x, neuron.y - fromNeuron.y) }))
+      .filter((entry) => entry.distance < Math.min(this.width * 0.64, 390))
+      .sort((a, b) => a.distance - b.distance);
+    if (!candidates.length) {
+      scene.lastBridgeTime = time;
+      return;
+    }
+    const toNeuron = candidates[Math.floor(rand() * Math.min(candidates.length, 2))].neuron;
+    const bridge = this.buildNeuroPathBridgeConnection(rand, fromNeuron, toNeuron, time);
+    scene.dynamicConnections.push(bridge);
+    scene.lastBridgeTime = time;
+  }
+
+  releaseNeuroPathDecay(neuron, time) {
+    const scene = this.scene;
+    if (!scene?.decayParticles) {
+      return;
+    }
+    const points = [
+      { x: neuron.x, y: neuron.y, size: 1.4, tint: "copper" },
+      ...neuron.terminals.map((terminal) => ({ x: terminal.x2, y: terminal.y2, size: 0.72, tint: "gold" })),
+      ...neuron.dendrites.slice(0, 5).map((branch) => {
+        const point = this.curvePoint(branch.curve, 0.82);
+        return { x: point.x, y: point.y, size: 0.56, tint: "copper" };
+      }),
+    ];
+    points.forEach((point, index) => {
+      scene.decayParticles.push({
+        x: point.x,
+        y: point.y,
+        vx: Math.cos(neuron.phase + index) * (0.18 + index * 0.018),
+        vy: Math.sin(neuron.phase + index * 0.7) * (0.18 + index * 0.012),
+        size: point.size,
+        tint: point.tint,
+        born: time,
+        life: 1.25 + (index % 4) * 0.18,
+      });
+    });
+    while (scene.decayParticles.length > 86) {
+      scene.decayParticles.shift();
+    }
+  }
+
   spawnNeuroPathNeuron(time) {
     const scene = this.scene;
     if (!scene || this.pointer.strength < 0.03) {
@@ -1964,9 +2127,9 @@ class ProjectVisualController {
     }
     const moved = Math.hypot(this.pointer.x - scene.lastSpawnX, this.pointer.y - scene.lastSpawnY);
     const compact = this.width < 520;
-    const spawnDelay = compact ? 0.32 : 0.24;
-    const spawnDistance = compact ? 38 : 40;
-    const stationaryReady = time - scene.lastSpawnTime > (compact ? 0.72 : 0.62);
+    const spawnDelay = compact ? 0.58 : 0.48;
+    const spawnDistance = compact ? 54 : 68;
+    const stationaryReady = time - scene.lastSpawnTime > (compact ? 1.08 : 0.96);
     if (time - scene.lastSpawnTime < spawnDelay || (moved < spawnDistance && !stationaryReady)) {
       return;
     }
@@ -1977,13 +2140,23 @@ class ProjectVisualController {
     let axonAngle = Number.isFinite(velocityAngle) && Math.hypot(this.pointer.vx, this.pointer.vy) > 1.2
       ? velocityAngle * 0.58
       : fallbackAngle;
-    const x = clamp(this.pointer.x + (rand() - 0.5) * 18, 52, this.width - 52);
-    const y = clamp(this.pointer.y + (rand() - 0.5) * 18, 58, this.height - 58);
+    const recruited = scene.dormantParticles
+      .map((particle) => ({
+        particle,
+        score: Math.hypot(particle.x - this.pointer.x, particle.y - this.pointer.y) - particle.charge * 82,
+      }))
+      .sort((a, b) => a.score - b.score)[0]?.particle;
+    const spreadAngle = rand() * Math.PI * 2;
+    const spreadRadius = (compact ? 14 : 22) + rand() * (compact ? 18 : 34);
+    const seedX = recruited && recruited.charge > 0.12 ? lerp(this.pointer.x, recruited.x, 0.72) : this.pointer.x;
+    const seedY = recruited && recruited.charge > 0.12 ? lerp(this.pointer.y, recruited.y, 0.72) : this.pointer.y;
+    const x = clamp(seedX + Math.cos(spreadAngle) * spreadRadius, 52, this.width - 52);
+    const y = clamp(seedY + Math.sin(spreadAngle) * spreadRadius * 0.76, 58, this.height - 58);
     const candidates = scene.dynamicNeurons.length
       ? scene.dynamicNeurons
       : scene.neurons;
     const nearby = [];
-    const linkLimit = Math.min(this.width * 0.16, compact ? 106 : 138);
+    const linkLimit = Math.min(this.width * 0.33, compact ? 156 : 230);
     for (let i = 0; i < candidates.length; i += 1) {
       const candidate = candidates[i];
       const distance = Math.hypot(candidate.x - x, candidate.y - y);
@@ -2006,7 +2179,7 @@ class ProjectVisualController {
       "dynamic"
     );
     neuron.born = time;
-    neuron.life = 5.8 + rand() * 0.7;
+    neuron.life = 3.1 + rand() * 1.8;
     neuron.lastTouched = time;
     neuron.activity = 1;
     neuron.dynamic = true;
@@ -2022,14 +2195,15 @@ class ProjectVisualController {
     }
 
     scene.dynamicNeurons.push(neuron);
-    const cap = compact ? 4 : 7;
-    while (scene.dynamicNeurons.length > cap) {
+    const neuronCap = compact ? 5 : 9;
+    const connectionCap = compact ? 11 : 18;
+    while (scene.dynamicNeurons.length > neuronCap) {
       const removed = scene.dynamicNeurons.shift();
       scene.dynamicConnections = scene.dynamicConnections.filter((connection) => (
         connection.fromNeuron !== removed && connection.toNeuron !== removed
       ));
     }
-    while (scene.dynamicConnections.length > cap) {
+    while (scene.dynamicConnections.length > connectionCap) {
       scene.dynamicConnections.shift();
     }
     scene.lastSpawnTime = time;
@@ -2158,22 +2332,12 @@ class ProjectVisualController {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    for (let i = 0; i < scene.dust.length; i += 1) {
-      const dust = scene.dust[i];
-      const x = dust.x * this.width + Math.sin(time * 0.16 + dust.phase) * 4;
-      const y = dust.y * this.height + Math.cos(time * 0.14 + dust.phase) * 3;
-      const near = pointerActive ? ease(1 - Math.hypot(this.pointer.x - x, this.pointer.y - y) / 160) : 0;
-      ctx.fillStyle = this.tint(dust.tint, 0.034 + near * 0.05);
-      ctx.beginPath();
-      ctx.arc(x, y, dust.size + near * 0.28, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
     this.spawnNeuroPathNeuron(time);
 
     for (let i = scene.dynamicNeurons.length - 1; i >= 0; i -= 1) {
       const neuron = scene.dynamicNeurons[i];
       if (time - neuron.born > neuron.life) {
+        this.releaseNeuroPathDecay(neuron, time);
         scene.dynamicNeurons.splice(i, 1);
       }
     }
@@ -2227,6 +2391,82 @@ class ProjectVisualController {
     for (let i = 0; i < scene.neurons.length; i += 1) {
       const neuron = scene.neurons[i];
       neuron.activity = Math.max(neuron.activity, scene.relay[i]);
+    }
+
+    this.maybeBridgeNeuroPathNeurons(time);
+
+    const probeTarget = pointerActive
+      ? this.neuroPathAttractionPoint(this.pointer.x, this.pointer.y, allNeurons)
+      : null;
+    if (pointerActive && probeTarget) {
+      const probeReach = this.width < 520 ? 112 : 142;
+      const probeGlow = ctx.createRadialGradient(this.pointer.x, this.pointer.y, 0, this.pointer.x, this.pointer.y, probeReach);
+      probeGlow.addColorStop(0, `rgba(111, 147, 155, ${0.035 * this.pointer.strength})`);
+      probeGlow.addColorStop(0.52, `rgba(210, 161, 95, ${0.018 * this.pointer.strength})`);
+      probeGlow.addColorStop(1, "rgba(210, 161, 95, 0)");
+      ctx.fillStyle = probeGlow;
+      ctx.fillRect(this.pointer.x - probeReach, this.pointer.y - probeReach, probeReach * 2, probeReach * 2);
+    }
+
+    for (let i = 0; i < scene.dormantParticles.length; i += 1) {
+      const particle = scene.dormantParticles[i];
+      const homeX = particle.homeX + Math.sin(time * 0.18 + particle.phase) * 5.5;
+      const homeY = particle.homeY + Math.cos(time * 0.16 + particle.phase * 0.8) * 4.5;
+      const probeDistance = pointerActive
+        ? Math.hypot(this.pointer.x - particle.x, this.pointer.y - particle.y)
+        : Infinity;
+      const branchDistance = probeTarget
+        ? Math.hypot(probeTarget.x - particle.x, probeTarget.y - particle.y)
+        : Infinity;
+      const gatherReach = this.width < 520 ? 150 : 195;
+      const gather = pointerActive
+        ? Math.max(
+            ease(1 - probeDistance / gatherReach),
+            ease(1 - branchDistance / (gatherReach * 0.86)) * 0.72
+          ) * this.pointer.strength
+        : 0;
+      particle.charge = lerp(particle.charge, gather, gather > particle.charge ? 0.18 : 0.05);
+
+      let targetX = homeX;
+      let targetY = homeY;
+      if (probeTarget && particle.charge > 0.018) {
+        const bridgeMix = 0.3 + (i % 5) * 0.085;
+        const orbit = 4.5 + (i % 4) * 2.4;
+        const phase = particle.phase + time * (0.85 + (i % 3) * 0.08);
+        targetX = lerp(this.pointer.x, probeTarget.x, bridgeMix) + Math.cos(phase) * orbit;
+        targetY = lerp(this.pointer.y, probeTarget.y, bridgeMix) + Math.sin(phase) * orbit * 0.72;
+      }
+
+      particle.x = lerp(particle.x, targetX, 0.045 + particle.charge * 0.21);
+      particle.y = lerp(particle.y, targetY, 0.045 + particle.charge * 0.21);
+      const alpha = 0.01 + particle.charge * 0.16;
+      if (alpha < 0.014) {
+        continue;
+      }
+      ctx.fillStyle = this.tint(particle.tint, alpha);
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size + particle.charge * 0.62, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (scene.decayParticles?.length) {
+      for (let i = scene.decayParticles.length - 1; i >= 0; i -= 1) {
+        const particle = scene.decayParticles[i];
+        const age = time - particle.born;
+        if (age > particle.life) {
+          scene.decayParticles.splice(i, 1);
+          continue;
+        }
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.vx *= 0.992;
+        particle.vy *= 0.992;
+        const alpha = ease(1 - age / particle.life) * 0.16;
+        ctx.fillStyle = this.tint(particle.tint, alpha);
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size + age * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     for (let i = 0; i < scene.connections.length; i += 1) {
@@ -2309,13 +2549,13 @@ class ProjectVisualController {
       const somaGrow = neuron.dynamic ? ease(ageSeconds / 0.22) : 1;
       const axonGrow = neuron.dynamic ? ease((ageSeconds - 0.18) / 0.58) : 1;
       const activity = clamp(neuron.activity, 0, 1) * lifeAlpha;
-      const layerAlpha = neuron.dynamic || !dynamicLayerActive ? 1 : 0.3;
+      const layerAlpha = neuron.dynamic || !dynamicLayerActive ? 1 : 0.74;
       const branchAlpha = neuron.dynamic
-        ? (0.2 + activity * 0.24) * lifeAlpha
-        : (0.055 + activity * 0.14) * lifeAlpha * layerAlpha;
+        ? (0.28 + activity * 0.28) * lifeAlpha
+        : (0.075 + activity * 0.17) * lifeAlpha * layerAlpha;
       const fineAlpha = neuron.dynamic
-        ? (0.09 + activity * 0.14) * lifeAlpha
-        : (0.025 + activity * 0.08) * lifeAlpha * layerAlpha;
+        ? (0.14 + activity * 0.16) * lifeAlpha
+        : (0.034 + activity * 0.095) * lifeAlpha * layerAlpha;
 
       for (let branchIndex = 0; branchIndex < neuron.dendrites.length; branchIndex += 1) {
         const branch = neuron.dendrites[branchIndex];
@@ -2324,7 +2564,7 @@ class ProjectVisualController {
           continue;
         }
         ctx.strokeStyle = `rgba(123, 71, 41, ${branchAlpha * branchGrow})`;
-        ctx.lineWidth = branch.width * (neuron.dynamic ? 1.12 : 0.84) + activity * 0.12;
+        ctx.lineWidth = branch.width * (neuron.dynamic ? 1.32 : 0.84) + activity * 0.16;
         this.drawCurveSegment(ctx, branch.curve, branchGrow, 11);
 
         if (neuron.dynamic && branchGrow < 0.98) {
@@ -2332,6 +2572,11 @@ class ProjectVisualController {
           ctx.fillStyle = `rgba(210, 161, 95, ${0.22 + activity * 0.34})`;
           ctx.beginPath();
           ctx.arc(tip.x, tip.y, 1.35, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (branchGrow > 0.96) {
+          ctx.fillStyle = `rgba(210, 161, 95, ${(neuron.dynamic ? 0.16 : 0.06) * lifeAlpha + activity * 0.1})`;
+          ctx.beginPath();
+          ctx.arc(branch.curve.x2, branch.curve.y2, neuron.dynamic ? 1.05 + activity * 0.22 : 0.64 + activity * 0.12, 0, Math.PI * 2);
           ctx.fill();
         }
 
@@ -2342,46 +2587,55 @@ class ProjectVisualController {
             continue;
           }
           ctx.strokeStyle = `rgba(123, 71, 41, ${fineAlpha * forkGrow})`;
-          ctx.lineWidth = (neuron.dynamic ? 0.44 : 0.32) + activity * 0.07;
+          ctx.lineWidth = (neuron.dynamic ? 0.56 : 0.32) + activity * 0.08;
           this.drawCurveSegment(ctx, fork, forkGrow, 8);
+          if (forkGrow > 0.94) {
+            ctx.fillStyle = `rgba(210, 161, 95, ${(neuron.dynamic ? 0.14 : 0.052) * lifeAlpha + activity * 0.08})`;
+            ctx.beginPath();
+            ctx.arc(fork.x2, fork.y2, neuron.dynamic ? 0.8 + activity * 0.18 : 0.48 + activity * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
 
-        if (activity > 0.42 && branchGrow > 0.82) {
-          const inward = ((ageSeconds * 0.56) + branch.phase * 0.11) % 1;
-          const pulseT = clamp(branchGrow * (1 - inward), 0.06, branchGrow);
-          const branchPulse = this.curvePoint(branch.curve, pulseT);
-          const branchPulseAlpha = (0.12 + activity * 0.2) * lifeAlpha * branchGrow;
-          ctx.fillStyle = `rgba(111, 147, 155, ${branchPulseAlpha * 0.12})`;
-          ctx.beginPath();
-          ctx.arc(branchPulse.x, branchPulse.y, 2.2, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = `rgba(255, 232, 190, ${branchPulseAlpha})`;
-          ctx.beginPath();
-          ctx.arc(branchPulse.x, branchPulse.y, 0.8 + branchPulseAlpha * 0.18, 0, Math.PI * 2);
-          ctx.fill();
+        if (activity > 0.28 && branchGrow > 0.72) {
+          const branchPulseOffsets = neuron.dynamic ? [0, 0.46] : [0];
+          for (let pulseIndex = 0; pulseIndex < branchPulseOffsets.length; pulseIndex += 1) {
+            const inward = ((ageSeconds * 0.7) + branch.phase * 0.11 + branchPulseOffsets[pulseIndex]) % 1;
+            const pulseT = clamp(branchGrow * (1 - inward), 0.06, branchGrow);
+            const branchPulse = this.curvePoint(branch.curve, pulseT);
+            const branchPulseAlpha = (0.12 + activity * 0.24) * lifeAlpha * branchGrow;
+            ctx.fillStyle = `rgba(111, 147, 155, ${branchPulseAlpha * 0.14})`;
+            ctx.beginPath();
+            ctx.arc(branchPulse.x, branchPulse.y, neuron.dynamic ? 2.8 : 2.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = `rgba(255, 232, 190, ${branchPulseAlpha})`;
+            ctx.beginPath();
+            ctx.arc(branchPulse.x, branchPulse.y, 0.82 + branchPulseAlpha * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
 
       const axonAlpha = neuron.dynamic
-        ? (0.18 + activity * 0.26) * lifeAlpha * axonGrow * (neuron.connected ? 1 : 0.58)
-        : (0.07 + activity * 0.16) * lifeAlpha * layerAlpha;
+        ? (0.24 + activity * 0.3) * lifeAlpha * axonGrow * (neuron.connected ? 1 : 0.76)
+        : (0.088 + activity * 0.18) * lifeAlpha * layerAlpha;
       ctx.strokeStyle = `rgba(157, 91, 50, ${axonAlpha})`;
-      ctx.lineWidth = neuron.dynamic ? 0.88 + activity * 0.18 : 0.5 + activity * 0.1;
+      ctx.lineWidth = neuron.dynamic ? 1.12 + activity * 0.22 : 0.5 + activity * 0.1;
       this.drawCurveSegment(ctx, neuron.axon, axonGrow, 16);
 
-      if (!neuron.dynamic || neuron.connected) {
+      if (!neuron.dynamic || neuron.connected || axonGrow > 0.72) {
         for (let terminalIndex = 0; terminalIndex < neuron.terminals.length; terminalIndex += 1) {
           const terminal = neuron.terminals[terminalIndex];
           const terminalGrow = neuron.dynamic ? ease((ageSeconds - terminal.delay) / 0.34) : 1;
           if (terminalGrow <= 0.01) {
             continue;
           }
-          ctx.strokeStyle = `rgba(157, 91, 50, ${(0.055 + activity * 0.13) * terminalGrow * lifeAlpha})`;
-          ctx.lineWidth = (neuron.dynamic ? 0.42 : 0.36) + activity * 0.06;
+          ctx.strokeStyle = `rgba(157, 91, 50, ${(0.075 + activity * 0.16) * terminalGrow * lifeAlpha})`;
+          ctx.lineWidth = (neuron.dynamic ? 0.56 : 0.36) + activity * 0.07;
           this.drawCurveSegment(ctx, terminal, terminalGrow, 8);
-          ctx.fillStyle = `rgba(210, 161, 95, ${(0.065 + activity * 0.15) * terminalGrow * lifeAlpha})`;
+          ctx.fillStyle = `rgba(210, 161, 95, ${(0.095 + activity * 0.18) * terminalGrow * lifeAlpha})`;
           ctx.beginPath();
-          ctx.arc(terminal.x2, terminal.y2, neuron.dynamic ? 0.92 + activity * 0.24 : 0.72 + activity * 0.2, 0, Math.PI * 2);
+          ctx.arc(terminal.x2, terminal.y2, neuron.dynamic ? 1.08 + activity * 0.28 : 0.72 + activity * 0.2, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -2407,11 +2661,11 @@ class ProjectVisualController {
         }
       }
 
-      const somaFillAlpha = neuron.dynamic ? 0.28 + activity * 0.15 : (0.06 + activity * 0.055) * layerAlpha;
-      const somaStrokeAlpha = neuron.dynamic ? 0.24 + activity * 0.22 : (0.055 + activity * 0.075) * layerAlpha;
+      const somaFillAlpha = neuron.dynamic ? 0.34 + activity * 0.18 : (0.068 + activity * 0.062) * layerAlpha;
+      const somaStrokeAlpha = neuron.dynamic ? 0.32 + activity * 0.24 : (0.06 + activity * 0.08) * layerAlpha;
       ctx.fillStyle = `rgba(255, 248, 238, ${somaFillAlpha * somaGrow * lifeAlpha})`;
       ctx.strokeStyle = `rgba(157, 91, 50, ${somaStrokeAlpha * lifeAlpha * somaGrow})`;
-      ctx.lineWidth = (neuron.dynamic ? 0.95 : 0.42) + activity * 0.11;
+      ctx.lineWidth = (neuron.dynamic ? 1.08 : 0.46) + activity * 0.12;
       ctx.beginPath();
       for (let pointIndex = 0; pointIndex < neuron.soma.length; pointIndex += 1) {
         const point = neuron.soma[pointIndex];
@@ -2445,8 +2699,8 @@ class ProjectVisualController {
   }
 
   spawnKerrRay(ray, rand = Math.random, distribute = false) {
-    const speed = 125 + rand() * 75;
-    const angle = (rand() - 0.5) * 0.1;
+    const speed = 190 + rand() * 105;
+    const angle = (rand() - 0.5) * 0.085;
     ray.x = distribute
       ? lerp(-this.width * 0.05, this.width * 1.02, rand())
       : -28 - rand() * 110;
@@ -2459,7 +2713,7 @@ class ProjectVisualController {
     ray.captureAge = 0;
     ray.captureOffsetX = 0;
     ray.captureOffsetY = 0;
-    ray.brightness = 0.45 + rand() * 0.55;
+    ray.brightness = 0.55 + rand() * 0.65;
   }
 
   drawKerr(ctx, time, dt) {
@@ -2479,19 +2733,33 @@ class ProjectVisualController {
     scene.lens.y = lerp(scene.lens.y, targetY, follow);
     const lensX = scene.lens.x;
     const lensY = scene.lens.y;
-    const mass = (this.width < 520 ? 5e5 : 7.6e5) * (0.42 + pointerStrength * 0.85);
-    const captureRadius = 9 + pointerStrength * 8;
+    const mass = (this.width < 520 ? 8.2e5 : 1.45e6) * (0.58 + pointerStrength * 1.12);
+    const captureRadius = 11 + pointerStrength * 15;
 
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // light gathering around the lens — a soft warm halo, nothing drawn
-    const halo = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, 140);
-    halo.addColorStop(0, `rgba(210, 161, 95, ${0.045 + pointerStrength * 0.07})`);
+    const haloRadius = this.width < 520 ? 118 : 168;
+    const halo = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, haloRadius);
+    halo.addColorStop(0, `rgba(210, 161, 95, ${0.06 + pointerStrength * 0.12})`);
+    halo.addColorStop(0.24, `rgba(157, 91, 50, ${0.028 + pointerStrength * 0.075})`);
     halo.addColorStop(1, "rgba(210, 161, 95, 0)");
     ctx.fillStyle = halo;
-    ctx.fillRect(lensX - 140, lensY - 140, 280, 280);
+    ctx.fillRect(lensX - haloRadius, lensY - haloRadius, haloRadius * 2, haloRadius * 2);
+
+    const ringRadius = 16 + pointerStrength * 16;
+    const ringAlpha = 0.08 + pointerStrength * 0.18;
+    ctx.strokeStyle = `rgba(210, 161, 95, ${ringAlpha})`;
+    ctx.lineWidth = 0.9 + pointerStrength * 0.85;
+    ctx.beginPath();
+    ctx.arc(lensX, lensY, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(255, 231, 187, ${ringAlpha * 0.34})`;
+    ctx.lineWidth = 0.55;
+    ctx.beginPath();
+    ctx.arc(lensX, lensY, ringRadius * 0.72, -0.35, Math.PI * 1.35);
+    ctx.stroke();
 
     scene.rays.forEach((ray) => {
       if (ray.captured) {
@@ -2503,7 +2771,7 @@ class ProjectVisualController {
         ray.x = lensX + ray.captureOffsetX;
         ray.y = lensY + ray.captureOffsetY;
       } else {
-        const steps = 3;
+          const steps = 4;
         const h = dt / steps;
         for (let step = 0; step < steps; step += 1) {
           const dx = lensX - ray.x;
@@ -2517,7 +2785,8 @@ class ProjectVisualController {
             ray.captureOffsetY = ray.y - lensY;
             break;
           }
-          const a = mass / Math.max(r2, 520);
+          const closeBoost = 1 + ease(1 - r / 155) * (1.35 + pointerStrength * 2.4);
+          const a = (mass * closeBoost) / Math.max(r2, 430);
           const inv = 1 / Math.max(r, 1);
           ray.vx += dx * inv * a * h;
           ray.vy += dy * inv * a * h;
@@ -2530,7 +2799,7 @@ class ProjectVisualController {
       }
 
       ray.trail.push({ x: ray.x, y: ray.y });
-      if (ray.trail.length > 62) {
+      if (ray.trail.length > 78) {
         ray.trail.shift();
       }
       if (
@@ -2553,26 +2822,30 @@ class ProjectVisualController {
         ctx.lineTo(ray.trail[i].x, ray.trail[i].y);
       }
       ctx.strokeStyle = ray.tone === 2
-        ? `rgba(111, 147, 155, ${0.4 * ray.brightness * tailAlpha})`
+        ? `rgba(111, 147, 155, ${0.48 * ray.brightness * tailAlpha})`
         : ray.tone === 1
-        ? `rgba(157, 91, 50, ${0.66 * ray.brightness * tailAlpha})`
-        : `rgba(210, 161, 95, ${0.74 * ray.brightness * tailAlpha})`;
-      ctx.lineWidth = ray.tone === 0 ? 2.2 : 1.4 + (ray.tone % 2) * 0.35;
+        ? `rgba(157, 91, 50, ${0.74 * ray.brightness * tailAlpha})`
+        : `rgba(210, 161, 95, ${0.84 * ray.brightness * tailAlpha})`;
+      ctx.lineWidth = ray.tone === 0 ? 2.55 : 1.55 + (ray.tone % 2) * 0.42;
       ctx.stroke();
 
       ctx.fillStyle = ray.tone === 2
-        ? `rgba(111, 147, 155, ${0.42 * tailAlpha})`
-        : `rgba(255, 231, 187, ${0.5 * tailAlpha})`;
+        ? `rgba(111, 147, 155, ${0.5 * tailAlpha})`
+        : `rgba(255, 231, 187, ${0.62 * tailAlpha})`;
       ctx.beginPath();
       ctx.arc(ray.x, ray.y, ray.captured ? 1.4 : 1.9, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    // the shadow: a small dark core, only while the lens is engaged
-    if (pointerStrength > 0.12) {
-      ctx.fillStyle = `rgba(30, 17, 7, ${0.55 * pointerStrength})`;
+    if (pointerStrength > 0.06) {
+      const coreRadius = 4.2 + pointerStrength * 6.8;
+      const core = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, coreRadius * 1.35);
+      core.addColorStop(0, `rgba(18, 9, 4, ${0.72 * pointerStrength})`);
+      core.addColorStop(0.74, `rgba(30, 17, 7, ${0.58 * pointerStrength})`);
+      core.addColorStop(1, "rgba(30, 17, 7, 0)");
+      ctx.fillStyle = core;
       ctx.beginPath();
-      ctx.arc(lensX, lensY, 3 + pointerStrength * 3.2, 0, Math.PI * 2);
+      ctx.arc(lensX, lensY, coreRadius * 1.35, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();

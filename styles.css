@@ -1767,26 +1767,39 @@ body.stage-lock {
 .archive-row::after {
   content: "";
   position: absolute;
-  left: 0;
+  left: -10px;
   top: 0;
   bottom: 0;
+  z-index: 0;
   width: 2px;
   background: var(--accent-soft);
+  pointer-events: none;
   transform: scaleY(0);
   transform-origin: top;
   transition: transform 300ms var(--ease-out);
 }
 
-.archive-row:hover::after {
+.archive-row:hover::after,
+.archive-row:focus-within::after,
+.archive-row.is-spotlit::after {
   transform: scaleY(1);
 }
 
 .archive-index {
+  position: relative;
+  z-index: 1;
   padding-top: 6px;
   color: var(--accent);
   font-size: 0.74rem;
   font-weight: 600;
   letter-spacing: 0.12em;
+}
+
+.archive-name,
+.archive-desc,
+.archive-stack {
+  position: relative;
+  z-index: 1;
 }
 
 .archive-name {
