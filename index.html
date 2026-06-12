@@ -26,6 +26,7 @@
         <path class="trace-base" d="" />
         <path class="trace-flow" d="" />
         <g class="trace-stations"></g>
+        <circle class="trace-probe-tail" r="2" />
         <g class="trace-probe">
           <circle class="trace-probe-halo" r="9" />
           <circle class="trace-probe-core" r="3" />
@@ -67,7 +68,7 @@
           <canvas class="hero-field-canvas"></canvas>
         </div>
         <div class="shell hero-grid">
-          <div class="hero-copy reveal">
+          <div class="hero-copy">
             <p class="eyebrow">Software Engineer</p>
             <h1 aria-label="Tanay Veeragandham">
               <span>Tanay</span>
@@ -108,7 +109,7 @@
       </section>
 
       <section class="proof-band" id="method">
-        <div class="shell proof-grid" data-reveal-group>
+        <div class="shell proof-grid" data-reveal-group data-rule>
           <article class="proof-item reveal">
             <span class="proof-index" aria-hidden="true">01</span>
             <div>
@@ -152,9 +153,9 @@
             </p>
           </div>
 
-          <div class="featured-list" data-reveal-group>
+          <div class="featured-list" data-reveal-group data-rule>
             <article class="featured-card reveal" id="neuropath">
-              <button class="project-card-button" type="button" data-project="neuropath" aria-expanded="false" aria-controls="project-drawer">
+              <button class="project-card-button" type="button" data-project="neuropath" aria-haspopup="dialog" aria-controls="project-stage">
                 <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">01</span>
                 </span>
@@ -164,10 +165,9 @@
                   <span class="project-card-text">
                     Deterministic artificial-life and connectome-analysis framework for reproducible simulations, graph experiments, and source-backed fly-brain pathway investigations.
                   </span>
-                  <span class="project-meta" aria-label="Technologies">Python&ensp;·&ensp;Simulation&ensp;·&ensp;CLI&ensp;·&ensp;JSON Persistence&ensp;·&ensp;Connectome Graphs&ensp;·&ensp;Pytest</span>
+                  <span class="project-meta">Python&ensp;·&ensp;Simulation&ensp;·&ensp;CLI&ensp;·&ensp;JSON Persistence&ensp;·&ensp;Connectome Graphs&ensp;·&ensp;Pytest</span>
                   <span class="project-card-footer">
-                    <span class="project-card-link project-card-link--closed">Read case study</span>
-                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="project-card-link">Read case study</span>
                     <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
@@ -198,7 +198,7 @@
             </article>
 
             <article class="featured-card reveal" id="kerr-jp">
-              <button class="project-card-button" type="button" data-project="kerr-jp" aria-expanded="false" aria-controls="project-drawer">
+              <button class="project-card-button" type="button" data-project="kerr-jp" aria-haspopup="dialog" aria-controls="project-stage">
                 <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">02</span>
                 </span>
@@ -208,10 +208,9 @@
                   <span class="project-card-text">
                     Python research pipeline for black-hole null-geodesic capture-escape boundaries, using adaptive refinement-tree topology to reveal local JP deformation response hidden by global summaries.
                   </span>
-                  <span class="project-meta" aria-label="Technologies">Python&ensp;·&ensp;Null Geodesics&ensp;·&ensp;Kerr Spacetime&ensp;·&ensp;Adaptive Refinement&ensp;·&ensp;CSV/JSON&ensp;·&ensp;LaTeX</span>
+                  <span class="project-meta">Python&ensp;·&ensp;Null Geodesics&ensp;·&ensp;Kerr Spacetime&ensp;·&ensp;Adaptive Refinement&ensp;·&ensp;CSV/JSON&ensp;·&ensp;LaTeX</span>
                   <span class="project-card-footer">
-                    <span class="project-card-link project-card-link--closed">Read case study</span>
-                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="project-card-link">Read case study</span>
                     <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
@@ -240,7 +239,7 @@
             </article>
 
             <article class="featured-card reveal" id="motorproof">
-              <button class="project-card-button" type="button" data-project="motorproof" aria-expanded="false" aria-controls="project-drawer">
+              <button class="project-card-button" type="button" data-project="motorproof" aria-haspopup="dialog" aria-controls="project-stage">
                 <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">03</span>
                 </span>
@@ -250,10 +249,9 @@
                   <span class="project-card-text">
                     Android-first used-car buying assistant that routes vehicle lookups through a FastAPI backend, keeps DVSA credentials server-side, and turns MOT evidence into buyer briefs, saved-car comparisons, proof tracking, and viewing checklists.
                   </span>
-                  <span class="project-meta" aria-label="Technologies">FastAPI&ensp;·&ensp;Android/Kotlin&ensp;·&ensp;Jetpack Compose&ensp;·&ensp;PostgreSQL&ensp;·&ensp;Docker Compose&ensp;·&ensp;DVSA API</span>
+                  <span class="project-meta">FastAPI&ensp;·&ensp;Android/Kotlin&ensp;·&ensp;Jetpack Compose&ensp;·&ensp;PostgreSQL&ensp;·&ensp;Docker Compose&ensp;·&ensp;DVSA API</span>
                   <span class="project-card-footer">
-                    <span class="project-card-link project-card-link--closed">Read case study</span>
-                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="project-card-link">Read case study</span>
                     <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
@@ -275,7 +273,7 @@
             </article>
 
             <article class="featured-card reveal" id="supplement">
-              <button class="project-card-button" type="button" data-project="supplement" aria-expanded="false" aria-controls="project-drawer">
+              <button class="project-card-button" type="button" data-project="supplement" aria-haspopup="dialog" aria-controls="project-stage">
                 <span class="project-row-rail" aria-hidden="true">
                   <span class="project-number">04</span>
                 </span>
@@ -285,10 +283,9 @@
                   <span class="project-card-text">
                     Deterministic supplement guidance web app with structured intake, safety gates, reviewed evidence boundaries, and separated optional product examples.
                   </span>
-                  <span class="project-meta" aria-label="Technologies">FastAPI&ensp;·&ensp;Python&ensp;·&ensp;Deterministic Rules&ensp;·&ensp;Evidence Workflow&ensp;·&ensp;Safety Gates&ensp;·&ensp;Web UX</span>
+                  <span class="project-meta">FastAPI&ensp;·&ensp;Python&ensp;·&ensp;Deterministic Rules&ensp;·&ensp;Evidence Workflow&ensp;·&ensp;Safety Gates&ensp;·&ensp;Web UX</span>
                   <span class="project-card-footer">
-                    <span class="project-card-link project-card-link--closed">Read case study</span>
-                    <span class="project-card-link project-card-link--open">Hide case study</span>
+                    <span class="project-card-link">Read case study</span>
                     <span class="toggle-icon" aria-hidden="true"></span>
                   </span>
                 </span>
@@ -317,29 +314,6 @@
               </button>
             </article>
 
-            <div class="project-drawer" id="project-drawer" hidden>
-              <div class="drawer-surface">
-                <div class="drawer-head">
-                  <div class="drawer-head-copy">
-                    <p class="eyebrow" id="project-drawer-kicker">Case study</p>
-                    <h3 id="project-drawer-title" tabindex="-1">Selected project</h3>
-                  </div>
-                  <button class="drawer-close" type="button" aria-label="Close case study">
-                    <svg viewBox="0 0 20 20" aria-hidden="true">
-                      <path d="M6 6 14 14" />
-                      <path d="M14 6 6 14" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div class="drawer-layout">
-                  <div class="drawer-visual-panel" data-project-visual-panel>
-                    <canvas class="drawer-visual-canvas" data-project-visual></canvas>
-                  </div>
-                  <div class="drawer-stage" id="project-drawer-content"></div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -353,7 +327,7 @@
             </div>
           </div>
 
-          <div class="archive-list" data-reveal-group>
+          <div class="archive-list" data-reveal-group data-rule>
             <article class="archive-row reveal">
               <span class="archive-index" aria-hidden="true">01</span>
               <div class="archive-name">
@@ -418,7 +392,7 @@
       </section>
 
       <section class="about-section" id="about">
-        <div class="shell about-grid">
+        <div class="shell about-grid" data-rule>
           <div class="about-copy reveal">
             <p class="eyebrow">Method / About</p>
             <h2>Physics background. Software first. Evidence over theatre.</h2>
@@ -513,6 +487,33 @@
           </div>
         </div>
       </template>
+
+      <div class="project-stage" id="project-stage" hidden>
+        <div class="stage-scrim" data-stage-close aria-hidden="true"></div>
+        <div class="stage-panel" role="dialog" aria-modal="true" aria-labelledby="project-stage-title">
+          <div class="stage-frame">
+            <div class="stage-head">
+              <div class="stage-head-copy">
+                <p class="eyebrow" id="project-stage-kicker">Case study</p>
+                <h3 id="project-stage-title" tabindex="-1">Selected project</h3>
+              </div>
+              <button class="stage-close" type="button" aria-label="Close case study">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M6 6 14 14" />
+                  <path d="M14 6 6 14" />
+                </svg>
+              </button>
+            </div>
+            <div class="stage-rail" data-stage-rail role="group" aria-label="Switch featured project"></div>
+            <div class="stage-layout">
+              <div class="stage-visual" data-project-visual-panel>
+                <canvas class="stage-visual-canvas" data-project-visual></canvas>
+              </div>
+              <div class="stage-content" id="project-stage-content" tabindex="0"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <script src="script.js"></script>

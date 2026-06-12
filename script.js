@@ -392,6 +392,10 @@ class GlyphRibbonController {
     this.frame = 0;
     this.lastTime = 0;
     this.inView = false;
+    this.suspended = false;
+    this.waveTime = 0;
+    this.momentum = 0;
+    this.lastScrollY = window.scrollY;
     this.pointer = { x: 0, y: 0, active: false, strength: 0 };
     this.layers = [];
 
@@ -470,6 +474,7 @@ class GlyphRibbonController {
         glyph: RIBBON_GLYPHS[(index * 3 + config.offset) % RIBBON_GLYPHS.length],
         phase: rand() * Math.PI * 2,
         assembly: 0.35 + rand() * 0.3,
+        flash: 0,
       }));
       return Object.assign({}, config, { spacing, span, items });
     };
@@ -485,6 +490,7 @@ class GlyphRibbonController {
         amp: this.height * 0.05,
         alpha: 0.32,
         lineWidth: 1.35,
+        wavePhase: 2.1,
       }),
       makeLayer({
         density: 7,
@@ -493,16 +499,28 @@ class GlyphRibbonController {
         offset: 0,
         speed: -20,
         size: this.height * 0.27,
-        baseY: this.height * 0.6,
-        amp: this.height * 0.085,
+        baseY: this.height * 0.58,
+        amp: this.height * 0.082,
         alpha: 0.94,
         lineWidth: 2.05,
+        wavePhase: 0,
       }),
     ];
   }
 
+  setSuspended(value) {
+    this.suspended = value;
+    this.syncLoop();
+  }
+
   shouldAnimate() {
-    return !this.motion.reduced && this.inView && !document.hidden && this.layers.length > 0;
+    return (
+      !this.motion.reduced &&
+      this.inView &&
+      !this.suspended &&
+      !document.hidden &&
+      this.layers.length > 0
+    );
   }
 
   syncLoop() {
@@ -520,14 +538,44 @@ class GlyphRibbonController {
     this.renderStatic();
   }
 
+  filamentY(layer, x) {
+    return (
+      layer.baseY +
+      Math.sin(x * 0.0042 + this.waveTime * 0.55 + layer.wavePhase) * layer.amp +
+      Math.sin(x * 0.0011 - this.waveTime * 0.22 + layer.wavePhase * 2) * layer.amp * 0.45
+    );
+  }
+
+  drawFilament(ctx, layer) {
+    const step = 16;
+    ctx.lineCap = "round";
+    for (let pass = 0; pass < 2; pass += 1) {
+      ctx.strokeStyle = pass === 0
+        ? `rgba(111, 58, 26, ${0.12 * layer.alpha})`
+        : `rgba(210, 162, 95, ${0.1 * layer.alpha})`;
+      ctx.lineWidth = pass === 0 ? 1 : 0.8;
+      ctx.beginPath();
+      for (let x = -step; x <= this.width + step; x += step) {
+        const y = this.filamentY(layer, x) + (pass === 0 ? 0 : 7);
+        if (x === -step) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+    }
+  }
+
   renderStatic() {
     if (!this.ctx) {
       return;
     }
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.layers.forEach((layer) => {
+      this.drawFilament(this.ctx, layer);
       layer.items.forEach((item) => {
-        const y = layer.baseY + Math.sin(item.x * 0.0042 + item.phase) * layer.amp;
+        const y = this.filamentY(layer, item.x);
         this.drawGlyph(this.ctx, item.glyph, item.x, y, layer.size, 0, 1, layer.alpha, layer.lineWidth);
       });
     });
@@ -542,19 +590,27 @@ class GlyphRibbonController {
     this.lastTime = time;
     this.pointer.strength += ((this.pointer.active ? 1 : 0) - this.pointer.strength) * 0.07;
 
+    // scroll velocity feeds the current — the glyph stream quickens as you move
+    const scrollY = window.scrollY;
+    const velocity = Math.abs(scrollY - this.lastScrollY) / Math.max(dt, 0.001);
+    this.lastScrollY = scrollY;
+    this.momentum = lerp(this.momentum, clamp(velocity / 1500, 0, 1.4), 0.06);
+    const flow = 1 + this.momentum * 1.6;
+    this.waveTime += dt * flow;
+
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
 
     this.layers.forEach((layer) => {
+      this.drawFilament(ctx, layer);
       layer.items.forEach((item) => {
-        item.x += layer.speed * dt;
+        item.x += layer.speed * flow * dt;
         if (layer.speed < 0 && item.x < -layer.spacing) {
           item.x += layer.span;
         } else if (layer.speed > 0 && item.x > this.width + layer.spacing) {
           item.x -= layer.span;
         }
-        const wavePhase = item.x * 0.0042 + time * 0.5 + item.phase;
-        const y = layer.baseY + Math.sin(wavePhase) * layer.amp;
+        const y = this.filamentY(layer, item.x) + Math.sin(time * 0.8 + item.phase) * 3;
         const boost =
           this.pointer.strength > 0.01
             ? ease(1 - Math.hypot(this.pointer.x - item.x, (this.pointer.y - y) * 1.3) / 250) *
@@ -563,9 +619,46 @@ class GlyphRibbonController {
             : 0;
         const alignWave = 0.5 + 0.5 * Math.sin(time * 0.4 - item.x * 0.0052 + item.phase * 0.6);
         const target = clamp(0.26 + alignWave * 0.52 + boost, 0, 1);
+        const previous = item.assembly;
         item.assembly = lerp(item.assembly, target, 0.065);
-        const tilt = Math.cos(wavePhase) * 0.12 * (1 - item.assembly * 0.72);
-        this.drawGlyph(ctx, item.glyph, item.x, y, layer.size, tilt, item.assembly, layer.alpha, layer.lineWidth);
+        if (previous < 0.86 && item.assembly >= 0.86) {
+          item.flash = 1;
+        }
+        if (item.flash) {
+          item.flash *= Math.exp(-dt * 2.4);
+          if (item.flash < 0.02) {
+            item.flash = 0;
+          }
+        }
+        const breathe = 1 + Math.sin(time * 0.7 + item.phase) * 0.045;
+        const tilt =
+          Math.cos(item.x * 0.0042 + this.waveTime * 0.55 + layer.wavePhase) *
+          0.11 *
+          (1 - item.assembly * 0.72);
+        if (item.flash) {
+          this.drawGlyph(
+            ctx,
+            item.glyph,
+            item.x,
+            y,
+            layer.size * breathe * (1 + (1 - item.flash) * 0.26),
+            tilt,
+            1,
+            layer.alpha * item.flash * 0.22,
+            layer.lineWidth
+          );
+        }
+        this.drawGlyph(
+          ctx,
+          item.glyph,
+          item.x,
+          y,
+          layer.size * breathe,
+          tilt,
+          item.assembly,
+          layer.alpha,
+          layer.lineWidth
+        );
       });
     });
 
@@ -668,14 +761,20 @@ class PageTraceController {
     this.flowPath = root.querySelector(".trace-flow");
     this.stationsGroup = root.querySelector(".trace-stations");
     this.probe = root.querySelector(".trace-probe");
+    this.tail = root.querySelector(".trace-probe-tail");
     this.endpoint = root.querySelector(".trace-endpoint");
     this.stations = [];
     this.length = 0;
+    this.lut = null;
     this.progress = 0;
+    this.trail = 0;
     this.target = 0;
     this.frame = 0;
+    this.lastTick = 0;
     this.rebuildTimer = 0;
     this.enabled = false;
+    this.suspended = false;
+    this.pendingRebuild = false;
 
     this.tick = this.tick.bind(this);
     this.queueRebuild = this.queueRebuild.bind(this);
@@ -693,15 +792,33 @@ class PageTraceController {
     this.onScroll();
   }
 
+  setSuspended(value) {
+    this.suspended = value;
+    if (!value && this.pendingRebuild) {
+      this.pendingRebuild = false;
+      this.queueRebuild();
+    }
+  }
+
   queueRebuild() {
+    if (this.suspended) {
+      this.pendingRebuild = true;
+      return;
+    }
     if (this.rebuildTimer) {
       window.clearTimeout(this.rebuildTimer);
+    }
+    // fade the trace out, rebuild against settled geometry, fade back —
+    // the line is never visibly wrong
+    if (this.length) {
+      this.root.classList.add("is-rebuilding");
     }
     this.rebuildTimer = window.setTimeout(() => {
       this.rebuildTimer = 0;
       this.build();
-      this.onScroll();
-    }, 180);
+      this.onScroll(true);
+      this.root.classList.remove("is-rebuilding");
+    }, 240);
   }
 
   docTop(element) {
@@ -810,6 +927,18 @@ class PageTraceController {
     const scale = this.length / Math.max(1, cumulative[cumulative.length - 1]);
     this.flowPath.style.strokeDasharray = `${this.length}`;
 
+    // sample the path once into a lookup table so scrolling never touches
+    // getPointAtLength again
+    const sampleCount = Math.round(clamp(Math.ceil(this.length / 6), 64, 2600));
+    const xs = new Float32Array(sampleCount + 1);
+    const ys = new Float32Array(sampleCount + 1);
+    for (let i = 0; i <= sampleCount; i += 1) {
+      const sample = this.flowPath.getPointAtLength((this.length * i) / sampleCount);
+      xs[i] = sample.x;
+      ys[i] = sample.y;
+    }
+    this.lut = { xs, ys, count: sampleCount };
+
     this.stationsGroup.replaceChildren();
     this.stations = stations.map((station) => {
       const point = points[station.pointIndex];
@@ -830,21 +959,39 @@ class PageTraceController {
 
   lengthAtY(targetY) {
     // The trace only moves down or sideways, so y is non-decreasing along it.
+    const { ys, count } = this.lut;
     let low = 0;
-    let high = this.length;
-    for (let i = 0; i < 22; i += 1) {
-      const mid = (low + high) / 2;
-      if (this.flowPath.getPointAtLength(mid).y < targetY) {
-        low = mid;
+    let high = count;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (ys[mid] < targetY) {
+        low = mid + 1;
       } else {
         high = mid;
       }
     }
-    return (low + high) / 2;
+    if (low <= 0) {
+      return 0;
+    }
+    const prev = ys[low - 1];
+    const next = ys[Math.min(low, count)];
+    const frac = next > prev ? clamp((targetY - prev) / (next - prev), 0, 1) : 0;
+    return ((low - 1 + frac) / count) * this.length;
   }
 
-  onScroll() {
-    if (!this.enabled || !this.length) {
+  pointAt(distance) {
+    const { xs, ys, count } = this.lut;
+    const t = clamp(distance / this.length, 0, 1) * count;
+    const index = Math.min(count - 1, Math.floor(t));
+    const frac = t - index;
+    return {
+      x: xs[index] + (xs[index + 1] - xs[index]) * frac,
+      y: ys[index] + (ys[index + 1] - ys[index]) * frac,
+    };
+  }
+
+  onScroll(snap = false) {
+    if (!this.enabled || !this.length || !this.lut) {
       return;
     }
     const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
@@ -852,47 +999,54 @@ class PageTraceController {
     const eyeY = clamp(window.scrollY + window.innerHeight * 0.58, this.startY, this.endY);
     const targetY = lerp(eyeY, this.endY, ease((scrollProgress - 0.86) / 0.14));
     this.target = clamp(this.lengthAtY(targetY) / this.length, 0, 1);
-    if (this.motion.reduced) {
+    if (snap || this.motion.reduced) {
       this.progress = this.target;
+      this.trail = this.target;
       this.apply();
       return;
     }
     if (!this.frame) {
+      this.lastTick = 0;
       this.frame = window.requestAnimationFrame(this.tick);
     }
   }
 
-  tick() {
+  tick(now) {
     this.frame = 0;
-    this.progress = lerp(this.progress, this.target, 0.14);
-    if (Math.abs(this.progress - this.target) > 0.0008) {
+    const dt = this.lastTick ? clamp((now - this.lastTick) / 1000, 0.001, 0.05) : 0.016;
+    this.lastTick = now;
+    // time-based critical damping — identical feel at any frame rate
+    this.progress += (this.target - this.progress) * (1 - Math.exp(-dt * 8.5));
+    this.trail += (this.progress - this.trail) * (1 - Math.exp(-dt * 4));
+    if (
+      Math.abs(this.target - this.progress) > 0.00035 ||
+      Math.abs(this.progress - this.trail) > 0.00035
+    ) {
       this.frame = window.requestAnimationFrame(this.tick);
     } else {
       this.progress = this.target;
+      this.trail = this.target;
     }
     this.apply();
   }
 
   apply() {
-    if (!this.length) {
+    if (!this.length || !this.lut) {
       return;
     }
     const reduced = this.motion.reduced;
     const distance = this.length * (reduced ? 1 : this.progress);
     this.flowPath.style.strokeDashoffset = `${this.length - distance}`;
     if (!reduced) {
-      let point = null;
-      try {
-        point = this.flowPath.getPointAtLength(distance);
-      } catch (error) {
-        point = null;
-      }
-      if (point) {
-        this.probe.setAttribute("transform", `translate(${point.x} ${point.y})`);
-        this.probe.style.opacity = "1";
-      }
+      const point = this.pointAt(distance);
+      this.probe.setAttribute("transform", `translate(${point.x} ${point.y})`);
+      this.probe.style.opacity = "1";
+      const tailPoint = this.pointAt(this.length * this.trail);
+      this.tail.setAttribute("transform", `translate(${tailPoint.x} ${tailPoint.y})`);
+      this.tail.style.opacity = "1";
     } else {
       this.probe.style.opacity = "0";
+      this.tail.style.opacity = "0";
     }
     for (let i = 0; i < this.stations.length; i += 1) {
       const station = this.stations[i];
@@ -1053,8 +1207,19 @@ class HeroFieldController {
     this.lockedMode = mode;
   }
 
+  setSuspended(value) {
+    this.suspended = value;
+    this.syncLoop();
+  }
+
   shouldAnimate() {
-    return !this.motion.reduced && this.inView && !document.hidden && Boolean(this.scene);
+    return (
+      !this.motion.reduced &&
+      this.inView &&
+      !this.suspended &&
+      !document.hidden &&
+      Boolean(this.scene)
+    );
   }
 
   syncLoop() {
@@ -1377,7 +1542,7 @@ class ProjectVisualController {
   buildScene() {
     const rand = mulberry32(hashSeed(`${this.mode}-${this.width}-${this.height}`));
     if (this.mode === "kerr") {
-      const rayCount = this.width < 520 ? 24 : 48;
+      const rayCount = this.width < 520 ? 34 : 66;
       const rays = Array.from({ length: rayCount }, (_, index) => {
         const ray = {
           lane: index / Math.max(rayCount - 1, 1),
@@ -1390,7 +1555,11 @@ class ProjectVisualController {
         this.spawnKerrRay(ray, rand, true);
         return ray;
       });
-      return { rays, rand };
+      return {
+        rays,
+        rand,
+        lens: { x: this.width * 0.6, y: this.height * 0.48 },
+      };
     }
     if (this.mode === "motorproof") {
       const lanes = this.width < 520 ? 4 : 5;
@@ -1409,19 +1578,15 @@ class ProjectVisualController {
       };
     }
     if (this.mode === "supplement") {
-      const types = ["capsule", "tablet", "bottle", "doc", "shield", "warning", "check", "lab", "product", "profile"];
+      const count = this.width < 520 ? 12 : 22;
+      const items = Array.from({ length: count }, () => {
+        const item = {};
+        this.resetSupplementItem(item, rand, true);
+        return item;
+      });
       return {
-        lastSpawn: 0,
-        cursorBurst: 0,
-        symbols: [],
-        idle: Array.from({ length: this.width < 520 ? 14 : 22 }, (_, index) => ({
-          x: 0.12 + rand() * 0.76,
-          y: 0.18 + rand() * 0.62,
-          phase: rand() * Math.PI * 2,
-          type: types[index % types.length],
-          size: 0.66 + rand() * 0.3,
-          drift: 0.6 + rand() * 0.7,
-        })),
+        items,
+        pulses: { evidence: 0, safe: 0, caution: 0 },
       };
     }
     return this.buildNeuroPathScene(rand);
@@ -1431,14 +1596,14 @@ class ProjectVisualController {
     const compact = this.width < 520;
     const layout = compact
       ? [
-          [0.24, 0.54, -0.08, 0.95],
-          [0.52, 0.43, 0.06, 1.03],
-          [0.79, 0.55, -0.03, 0.94],
+          [0.24, 0.5, -0.08, 0.95],
+          [0.52, 0.42, 0.06, 1.03],
+          [0.79, 0.56, -0.03, 0.94],
         ]
       : [
-          [0.24, 0.54, -0.08, 1],
-          [0.52, 0.42, 0.06, 1.08],
-          [0.78, 0.55, -0.03, 0.98],
+          [0.22, 0.32, -0.06, 1.05],
+          [0.5, 0.64, 0.1, 1.12],
+          [0.78, 0.36, -0.05, 1.02],
         ];
     const neurons = layout.map(([x, y, angle, scale], index) => (
       this.buildNeuroPathNeuron(
@@ -1705,7 +1870,7 @@ class ProjectVisualController {
 
   spawnNeuroPathNeuron(time) {
     const scene = this.scene;
-    if (!scene || !this.pointer.active || this.pointer.strength < 0.03) {
+    if (!scene || this.pointer.strength < 0.03) {
       return;
     }
     const moved = Math.hypot(this.pointer.x - scene.lastSpawnX, this.pointer.y - scene.lastSpawnY);
@@ -1813,8 +1978,8 @@ class ProjectVisualController {
       this.height * 0.48,
       Math.max(this.width, this.height) * 0.72
     );
-    radial.addColorStop(0, "rgba(210, 161, 95, 0.095)");
-    radial.addColorStop(0.58, "rgba(210, 161, 95, 0.025)");
+    radial.addColorStop(0, "rgba(210, 161, 95, 0.06)");
+    radial.addColorStop(0.58, "rgba(210, 161, 95, 0.015)");
     radial.addColorStop(1, "rgba(210, 161, 95, 0)");
     ctx.fillStyle = radial;
     ctx.fillRect(0, 0, this.width, this.height);
@@ -1827,7 +1992,20 @@ class ProjectVisualController {
     const time = timeStamp * 0.001;
     const dt = this.lastTime ? clamp(time - this.lastTime, 0.001, 0.033) : 0.016;
     this.lastTime = time || this.lastTime;
-    this.pointer.strength += ((this.pointer.active ? 1 : 0) - this.pointer.strength) * 0.1;
+
+    // phantom probe: while no pointer is present, the system runs its own
+    // slow inspection pass so the stage is never inert
+    const autonomous = this.mode === "neuropath" || this.mode === "supplement";
+    if (!this.pointer.active && autonomous && !this.motion.reduced) {
+      const phantomX = this.width * (0.5 + 0.33 * Math.sin(time * 0.21));
+      const phantomY = this.height * (0.5 + 0.3 * Math.sin(time * 0.157 + 1.6));
+      this.pointer.vx = lerp(this.pointer.vx, phantomX - this.pointer.x, 0.3);
+      this.pointer.vy = lerp(this.pointer.vy, phantomY - this.pointer.y, 0.3);
+      this.pointer.x = phantomX;
+      this.pointer.y = phantomY;
+    }
+    const strengthTarget = this.pointer.active ? 1 : autonomous && !this.motion.reduced ? 0.4 : 0;
+    this.pointer.strength += (strengthTarget - this.pointer.strength) * 0.08;
 
     const ctx = this.ctx;
     this.clearSurface(ctx);
@@ -1885,7 +2063,7 @@ class ProjectVisualController {
 
   drawNeuroPath(ctx, time) {
     const scene = this.scene;
-    const pointerActive = this.pointer.active && this.pointer.strength > 0.018;
+    const pointerActive = this.pointer.strength > 0.018;
     const linger = 7.2;
     ctx.save();
     ctx.lineCap = "round";
@@ -2178,161 +2356,142 @@ class ProjectVisualController {
   }
 
   spawnKerrRay(ray, rand = Math.random, distribute = false) {
+    const speed = 125 + rand() * 75;
+    const angle = (rand() - 0.5) * 0.1;
     ray.x = distribute
-      ? lerp(-this.width * 0.08, this.width * 1.05, rand())
-      : -34 - rand() * 84;
-    const laneY = this.height * (0.1 + ray.lane * 0.8);
-    ray.y = laneY + (rand() - 0.5) * this.height * 0.035;
-    const angle = (rand() - 0.5) * 0.18;
-    const speed = 136 + rand() * 66;
-    ray.baseVx = Math.cos(angle) * speed;
-    ray.baseVy = Math.sin(angle) * speed;
-    ray.vx = ray.baseVx;
-    ray.vy = ray.baseVy;
+      ? lerp(-this.width * 0.05, this.width * 1.02, rand())
+      : -28 - rand() * 110;
+    ray.y = this.height * (0.03 + 0.94 * rand());
+    ray.vx = Math.cos(angle) * speed;
+    ray.vy = Math.sin(angle) * speed;
+    ray.speed = speed;
     ray.trail.length = 0;
     ray.captured = false;
     ray.captureAge = 0;
-    ray.nearMiss = false;
-    ray.brightness = 0.5 + rand() * 0.5;
+    ray.captureOffsetX = 0;
+    ray.captureOffsetY = 0;
+    ray.brightness = 0.45 + rand() * 0.55;
   }
 
   drawKerr(ctx, time, dt) {
-    const lensX = this.pointer.active ? this.pointer.x : this.width * 0.58;
-    const lensY = this.pointer.active ? this.pointer.y : this.height * 0.5;
+    // Null-geodesic-flavoured lensing: photons keep constant speed, the
+    // lens bends their direction with a 1/r^2 field. Far rays deflect
+    // slightly, close rays whip around, the closest plunge and are captured.
+    const scene = this.scene;
     const pointerStrength = this.pointer.strength;
-    const weakImpactRadius = 70 + pointerStrength * 54;
-    const strongImpactRadius = 24 + pointerStrength * 18;
-    const alongRadius = 152 + pointerStrength * 62;
-    const captureRadius = 6 + pointerStrength * 9;
-    const lensStrength = 138 + pointerStrength * 590;
-    const maxSpeed = 265;
+    const targetX = this.pointer.active
+      ? this.pointer.x
+      : this.width * (0.6 + Math.sin(time * 0.09) * 0.07);
+    const targetY = this.pointer.active
+      ? this.pointer.y
+      : this.height * (0.46 + Math.sin(time * 0.127 + 1.2) * 0.1);
+    const follow = 1 - Math.exp(-dt * (this.pointer.active ? 14 : 2.2));
+    scene.lens.x = lerp(scene.lens.x, targetX, follow);
+    scene.lens.y = lerp(scene.lens.y, targetY, follow);
+    const lensX = scene.lens.x;
+    const lensY = scene.lens.y;
+    const mass = (this.width < 520 ? 5e5 : 7.6e5) * (0.42 + pointerStrength * 0.85);
+    const captureRadius = 9 + pointerStrength * 8;
+
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    const glow = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, 165);
-    glow.addColorStop(0, `rgba(45, 27, 18, ${0.08 + pointerStrength * 0.08})`);
-    glow.addColorStop(0.22, `rgba(157, 91, 50, ${0.07 + pointerStrength * 0.09})`);
-    glow.addColorStop(0.52, `rgba(210, 161, 95, ${0.055 + pointerStrength * 0.065})`);
-    glow.addColorStop(1, "rgba(210, 161, 95, 0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(lensX - 165, lensY - 165, 330, 330);
+    // light gathering around the lens — a soft warm halo, nothing drawn
+    const halo = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, 140);
+    halo.addColorStop(0, `rgba(210, 161, 95, ${0.045 + pointerStrength * 0.07})`);
+    halo.addColorStop(1, "rgba(210, 161, 95, 0)");
+    ctx.fillStyle = halo;
+    ctx.fillRect(lensX - 140, lensY - 140, 280, 280);
 
-    this.scene.rays.forEach((ray, index) => {
+    scene.rays.forEach((ray) => {
       if (ray.captured) {
+        // plunge: the offset from the lens collapses exponentially
         ray.captureAge += dt;
-        const angle = ray.phase + ray.captureAge * (3.8 + (index % 3));
-        const radius = Math.max(2, 26 * (1 - ray.captureAge / 1.2));
-        ray.x = lensX + Math.cos(angle) * radius;
-        ray.y = lensY + Math.sin(angle) * radius * 0.72;
+        const collapse = Math.exp(-dt * 7.5);
+        ray.captureOffsetX *= collapse;
+        ray.captureOffsetY *= collapse;
+        ray.x = lensX + ray.captureOffsetX;
+        ray.y = lensY + ray.captureOffsetY;
       } else {
-        const dx = lensX - ray.x;
-        const dy = lensY - ray.y;
-        const dist = Math.max(1, Math.hypot(dx, dy));
-        let speed = Math.max(1, Math.hypot(ray.vx, ray.vy));
-        const dirX = ray.vx / speed;
-        const dirY = ray.vy / speed;
-        const along = dx * dirX + dy * dirY;
-        const impact = Math.abs(dx * dirY - dy * dirX);
-        const aheadWindow = along > -42 ? 1 : ease(1 - Math.abs(along + 42) / 78);
-        const longitudinalWindow = ease(1 - Math.abs(along) / alongRadius) * aheadWindow;
-        const weakWindow = ease(1 - impact / weakImpactRadius);
-        const strongWindow = ease(1 - impact / strongImpactRadius);
-        const fieldInfluence = longitudinalWindow * (weakWindow * 0.22 + strongWindow * 0.78);
-        if (fieldInfluence > 0.001) {
-          const perpSign = Math.sign(dy * dirX - dx * dirY) || 1;
-          const closeBoost = ease(1 - dist / (strongImpactRadius * 1.8));
-          const accel = lensStrength * fieldInfluence * (0.72 + closeBoost * 0.9);
-          ray.vx += -dirY * perpSign * accel * dt;
-          ray.vy += dirX * perpSign * accel * dt;
-        }
-        const hasPassedLens = along < -70;
-        const relax = hasPassedLens
-          ? 0.045
-          : 0.008 + (1 - weakWindow) * 0.035;
-        ray.vx = lerp(ray.vx, ray.baseVx, relax);
-        ray.vy = lerp(ray.vy, ray.baseVy, relax);
-        speed = Math.hypot(ray.vx, ray.vy);
-        if (speed > maxSpeed) {
-          ray.vx = (ray.vx / speed) * maxSpeed;
-          ray.vy = (ray.vy / speed) * maxSpeed;
-        }
-        ray.x += ray.vx * dt;
-        ray.y += ray.vy * dt;
-        const approach = ((ray.vx * dx + ray.vy * dy) / Math.max(speed * dist, 1));
-        if (
-          pointerStrength > 0.24 &&
-          dist < captureRadius &&
-          impact < captureRadius * 1.35 &&
-          approach > 0.22
-        ) {
-          ray.captured = true;
-          ray.captureAge = 0;
-          ray.vx = 0;
-          ray.vy = 0;
+        const steps = 3;
+        const h = dt / steps;
+        for (let step = 0; step < steps; step += 1) {
+          const dx = lensX - ray.x;
+          const dy = lensY - ray.y;
+          const r2 = dx * dx + dy * dy;
+          const r = Math.sqrt(r2);
+          if (r < captureRadius && pointerStrength > 0.18) {
+            ray.captured = true;
+            ray.captureAge = 0;
+            ray.captureOffsetX = ray.x - lensX;
+            ray.captureOffsetY = ray.y - lensY;
+            break;
+          }
+          const a = mass / Math.max(r2, 520);
+          const inv = 1 / Math.max(r, 1);
+          ray.vx += dx * inv * a * h;
+          ray.vy += dy * inv * a * h;
+          const vNorm = Math.max(1, Math.hypot(ray.vx, ray.vy));
+          ray.vx = (ray.vx / vNorm) * ray.speed;
+          ray.vy = (ray.vy / vNorm) * ray.speed;
+          ray.x += ray.vx * h;
+          ray.y += ray.vy * h;
         }
       }
 
-      ray.trail.push({ x: ray.x, y: ray.y, captured: ray.captured });
-      if (ray.trail.length > 46) {
+      ray.trail.push({ x: ray.x, y: ray.y });
+      if (ray.trail.length > 62) {
         ray.trail.shift();
       }
       if (
-        ray.x > this.width + 55 ||
-        ray.x < -this.width * 0.48 ||
-        ray.y < -80 ||
-        ray.y > this.height + 80 ||
-        ray.captureAge > 1.15
+        ray.x > this.width + 70 ||
+        ray.x < -this.width * 0.24 - 90 ||
+        ray.y < -90 ||
+        ray.y > this.height + 90 ||
+        ray.captureAge > 0.55
       ) {
         this.spawnKerrRay(ray, Math.random, false);
       }
 
+      if (ray.trail.length < 2) {
+        return;
+      }
+      const tailAlpha = ray.captured ? Math.max(0, 1 - ray.captureAge / 0.55) : 1;
       ctx.beginPath();
-      let started = false;
-      ray.trail.forEach((point) => {
-        if (!started) {
-          ctx.moveTo(point.x, point.y);
-          started = true;
-        } else {
-          ctx.lineTo(point.x, point.y);
-        }
-      });
-      const tailAlpha = ray.captured ? Math.max(0, 1 - ray.captureAge / 1.15) : 1;
+      ctx.moveTo(ray.trail[0].x, ray.trail[0].y);
+      for (let i = 1; i < ray.trail.length; i += 1) {
+        ctx.lineTo(ray.trail[i].x, ray.trail[i].y);
+      }
       ctx.strokeStyle = ray.tone === 2
-        ? `rgba(111, 147, 155, ${0.32 * ray.brightness * tailAlpha})`
+        ? `rgba(111, 147, 155, ${0.4 * ray.brightness * tailAlpha})`
         : ray.tone === 1
-        ? `rgba(157, 91, 50, ${0.62 * ray.brightness * tailAlpha})`
-        : `rgba(210, 161, 95, ${0.66 * ray.brightness * tailAlpha})`;
-      ctx.lineWidth = ray.tone === 0 ? 2.35 : 1.45 + (ray.tone % 2) * 0.34;
+        ? `rgba(157, 91, 50, ${0.66 * ray.brightness * tailAlpha})`
+        : `rgba(210, 161, 95, ${0.74 * ray.brightness * tailAlpha})`;
+      ctx.lineWidth = ray.tone === 0 ? 2.2 : 1.4 + (ray.tone % 2) * 0.35;
       ctx.stroke();
 
       ctx.fillStyle = ray.tone === 2
-        ? `rgba(111, 147, 155, ${0.44 * tailAlpha})`
-        : `rgba(255, 231, 187, ${0.52 * tailAlpha})`;
+        ? `rgba(111, 147, 155, ${0.42 * tailAlpha})`
+        : `rgba(255, 231, 187, ${0.5 * tailAlpha})`;
       ctx.beginPath();
-      ctx.arc(ray.x, ray.y, ray.captured ? 1.7 : 2.2, 0, Math.PI * 2);
+      ctx.arc(ray.x, ray.y, ray.captured ? 1.4 : 1.9, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    if (pointerStrength > 0.035) {
-      ctx.strokeStyle = `rgba(123, 71, 41, ${0.2 + pointerStrength * 0.18})`;
-      ctx.lineWidth = 1.05;
+    // the shadow: a small dark core, only while the lens is engaged
+    if (pointerStrength > 0.12) {
+      ctx.fillStyle = `rgba(30, 17, 7, ${0.55 * pointerStrength})`;
       ctx.beginPath();
-      ctx.ellipse(lensX, lensY, 28 + pointerStrength * 18, 22 + pointerStrength * 12, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(210, 161, 95, ${0.13 * pointerStrength})`;
-      ctx.setLineDash([5, 9]);
-      ctx.beginPath();
-      ctx.arc(lensX, lensY, 64, -0.7, 0.95);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.arc(lensX, lensY, 3 + pointerStrength * 3.2, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
   }
 
   laneY(lane) {
     const count = this.scene.lanes;
-    const gap = Math.min(58, this.height * 0.115);
+    const gap = clamp(this.height * 0.16, 34, 100);
     const center = this.height * 0.5;
     return center + (lane - (count - 1) / 2) * gap;
   }
@@ -2441,102 +2600,167 @@ class ProjectVisualController {
     ctx.restore();
   }
 
-  spawnSupplement(time) {
-    if (!this.pointer.active || !this.scene || time - this.scene.lastSpawn < 0.13) {
-      return;
-    }
-    this.scene.lastSpawn = time;
-    const types = ["capsule", "tablet", "bottle", "doc", "shield", "warning", "check", "lab", "product", "profile"];
-    const index = Math.floor((time * 17 + this.pointer.x * 0.03 + this.pointer.y * 0.02) % types.length);
-    const angle = time * 2.1 + index * 0.7;
-    this.scene.symbols.push({
-      type: types[index],
-      x: this.pointer.x + Math.cos(angle) * 24,
-      y: this.pointer.y + Math.sin(angle) * 18,
-      born: time,
-      life: 1.9 + (index % 4) * 0.34,
-      lane: index % 4,
-      phase: angle,
-    });
-    if (this.scene.symbols.length > 34) {
-      this.scene.symbols.shift();
-    }
+  resetSupplementItem(item, rand = Math.random, distribute = false) {
+    item.kind = rand() > 0.34 ? "capsule" : "doc";
+    item.x = distribute ? this.width * rand() * 0.62 : -26 - rand() * 70;
+    item.baseY = this.height * (0.1 + rand() * 0.8);
+    item.y = item.baseY;
+    item.speed = 15 + rand() * 14;
+    item.phase = rand() * Math.PI * 2;
+    item.state = "drift";
+    item.t = 0;
+    item.rot = (rand() - 0.5) * 0.6;
+    item.dest = null;
   }
 
-  drawSupplement(ctx, time) {
-    this.spawnSupplement(time);
+  supplementLanes() {
+    return [
+      { id: "evidence", kind: "doc", x: this.width * 0.82, y: this.height * 0.17 },
+      { id: "safe", kind: "shield", x: this.width * 0.85, y: this.height * 0.52 },
+      { id: "caution", kind: "warning", x: this.width * 0.78, y: this.height * 0.86 },
+    ];
+  }
+
+  drawSupplement(ctx, time, dt) {
+    // intake items drift in from the left; the probe acts as a triage gate
+    // that routes each one along a path to evidence, safety, or caution
+    const scene = this.scene;
+    const strength = this.pointer.strength;
+    const lanes = this.supplementLanes();
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    this.scene.idle.forEach((item) => {
-      const x = item.x * this.width + Math.sin(time * 0.18 * item.drift + item.phase) * 12;
-      const y = item.y * this.height + Math.cos(time * 0.16 * item.drift + item.phase) * 9;
-      const focus = this.pointer.active
-        ? ease(1 - Math.hypot(this.pointer.x - x, this.pointer.y - y) / 150) * this.pointer.strength
-        : 0;
-      const towardX = lerp(x, this.pointer.x, focus * 0.08);
-      const towardY = lerp(y, this.pointer.y, focus * 0.08);
-      this.drawSupplementSymbol(ctx, item.type, towardX, towardY, 0.08 + focus * 0.18, item.size + focus * 0.12, item.phase * 0.16);
+    lanes.forEach((lane) => {
+      const pulse = scene.pulses[lane.id] || 0;
+      scene.pulses[lane.id] = pulse * Math.exp(-dt * 2.6);
+      const alpha = 0.42 + pulse * 0.45;
+      this.drawSupplementSymbol(ctx, lane.kind, lane.x, lane.y, alpha, 1.3 + pulse * 0.1, 0);
+      if (lane.id === "safe") {
+        this.drawSupplementSymbol(ctx, "check", lane.x, lane.y - 1, alpha * 0.9, 0.6, 0);
+      }
+      ctx.strokeStyle = `rgba(111, 58, 26, ${0.18 + pulse * 0.24})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(lane.x - 36, lane.y);
+      ctx.lineTo(lane.x - 23, lane.y);
+      ctx.stroke();
     });
 
-    if (this.pointer.strength > 0.035) {
-      const x = this.pointer.x;
-      const y = this.pointer.y;
-      const alpha = this.pointer.strength;
-      ctx.strokeStyle = `rgba(157, 91, 50, ${0.15 * alpha})`;
-      ctx.lineWidth = 1.15;
-      ctx.beginPath();
-      ctx.arc(x, y, 82, -1.2, 1.05);
-      ctx.arc(x, y, 116, 2.15, 4.05);
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(111, 147, 155, ${0.12 * alpha})`;
-      ctx.setLineDash([3, 9]);
-      ctx.beginPath();
-      ctx.moveTo(x - 106, y + 88);
-      ctx.quadraticCurveTo(x - 12, y + 116, x + 102, y + 84);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      this.drawSupplementSymbol(ctx, "shield", x - 42, y - 40, 0.22 * alpha, 0.78, 0);
+    // triage reticle: four rotating crop ticks around the probe
+    if (strength > 0.05) {
+      const radius = 24;
+      ctx.strokeStyle = `rgba(156, 81, 38, ${0.34 * strength})`;
+      ctx.lineWidth = 1.1;
+      const spin = time * 0.5;
+      for (let i = 0; i < 4; i += 1) {
+        const angle = spin + (Math.PI / 2) * i;
+        ctx.beginPath();
+        ctx.moveTo(
+          this.pointer.x + Math.cos(angle) * radius,
+          this.pointer.y + Math.sin(angle) * radius
+        );
+        ctx.lineTo(
+          this.pointer.x + Math.cos(angle) * (radius + 7),
+          this.pointer.y + Math.sin(angle) * (radius + 7)
+        );
+        ctx.stroke();
+      }
     }
 
-    this.scene.symbols = this.scene.symbols.filter((symbol) => time - symbol.born < symbol.life);
-    this.scene.symbols.forEach((symbol) => {
-      const age = time - symbol.born;
-      const progress = clamp(age / symbol.life, 0, 1);
-      const fade = Math.sin(progress * Math.PI);
-      const orbit = symbol.phase + progress * Math.PI * 1.15;
-      const radius = 24 + symbol.lane * 14;
-      let targetX = symbol.x + Math.cos(orbit) * radius;
-      let targetY = symbol.y + Math.sin(orbit) * radius * 0.62;
-      if (progress > 0.28) {
-        const route = this.supplementRoute(symbol.type, symbol.x, symbol.y);
-        const mix = ease((progress - 0.28) / 0.72);
-        targetX = lerp(targetX, route.x, mix);
-        targetY = lerp(targetY, route.y, mix);
+    scene.items.forEach((item) => {
+      if (item.state === "drift") {
+        item.x += item.speed * dt;
+        item.y = item.baseY + Math.sin(time * 0.5 + item.phase) * 7;
+        if (item.x > this.width + 30) {
+          this.resetSupplementItem(item);
+        }
+        const distance = Math.hypot(this.pointer.x - item.x, this.pointer.y - item.y);
+        if (strength > 0.07 && distance < 120 && item.x < this.width * 0.72) {
+          item.state = "triage";
+          item.t = 0;
+          item.fromX = item.x;
+          item.fromY = item.y;
+        }
+        // short direction tail — reads as steady intake flow
+        ctx.strokeStyle = "rgba(123, 71, 41, 0.14)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(item.x - 24, item.y);
+        ctx.lineTo(item.x - 13, item.y);
+        ctx.stroke();
+      } else if (item.state === "triage") {
+        item.t = Math.min(1, item.t + dt / 0.55);
+        const k = ease(item.t);
+        item.x = lerp(item.fromX, this.pointer.x + Math.cos(item.phase) * 16, k);
+        item.y = lerp(item.fromY, this.pointer.y + Math.sin(item.phase) * 14, k);
+        if (item.t >= 1) {
+          const roll = (Math.sin(item.phase * 12.9898) + 1) / 2;
+          item.dest = item.kind === "doc"
+            ? "evidence"
+            : roll > 0.8
+            ? "caution"
+            : roll > 0.62
+            ? "evidence"
+            : "safe";
+          const lane = lanes.find((entry) => entry.id === item.dest);
+          item.state = "route";
+          item.t = 0;
+          item.fromX = item.x;
+          item.fromY = item.y;
+          const dx = lane.x - item.x;
+          const dy = lane.y - item.y;
+          const norm = Math.max(1, Math.hypot(dx, dy));
+          const bow = clamp(norm * 0.22, 16, 50) * (item.phase > Math.PI ? 1 : -1);
+          item.ctrlX = (item.x + lane.x) / 2 + (-dy / norm) * bow;
+          item.ctrlY = (item.y + lane.y) / 2 + (dx / norm) * bow;
+          item.duration = 1.15 + (item.phase % 1) * 0.5;
+        }
+      } else if (item.state === "route") {
+        item.t = Math.min(1, item.t + dt / item.duration);
+        const lane = lanes.find((entry) => entry.id === item.dest);
+        const k = ease(item.t);
+        const inv = 1 - k;
+        item.x = inv * inv * item.fromX + 2 * inv * k * item.ctrlX + k * k * lane.x;
+        item.y = inv * inv * item.fromY + 2 * inv * k * item.ctrlY + k * k * lane.y;
+
+        const pathAlpha = Math.sin(item.t * Math.PI) * 0.22;
+        if (pathAlpha > 0.01) {
+          ctx.strokeStyle = item.dest === "caution"
+            ? `rgba(146, 90, 53, ${pathAlpha})`
+            : item.dest === "evidence"
+            ? `rgba(111, 147, 155, ${pathAlpha})`
+            : `rgba(156, 81, 38, ${pathAlpha})`;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 8]);
+          ctx.lineDashOffset = -time * 26;
+          ctx.beginPath();
+          ctx.moveTo(item.fromX, item.fromY);
+          ctx.quadraticCurveTo(item.ctrlX, item.ctrlY, lane.x, lane.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        if (item.t >= 1) {
+          scene.pulses[item.dest] = 1;
+          this.resetSupplementItem(item);
+          return;
+        }
       }
-      this.drawSupplementSymbol(ctx, symbol.type, targetX, targetY, 0.58 * fade, 0.88 + fade * 0.16, orbit * 0.12);
+
+      const baseAlpha = item.state === "drift" ? 0.46 : 0.72;
+      const fade = item.state === "route" ? 1 - ease(Math.max(0, item.t - 0.86) / 0.14) : 1;
+      this.drawSupplementSymbol(
+        ctx,
+        item.kind,
+        item.x,
+        item.y,
+        baseAlpha * fade,
+        item.state === "drift" ? 0.95 : 1.05,
+        item.rot + Math.sin(time * 0.4 + item.phase) * 0.08
+      );
     });
     ctx.restore();
-  }
-
-  supplementRoute(type, x, y) {
-    if (type === "warning") {
-      return { x: x - 94, y: y + 46 };
-    }
-    if (type === "doc" || type === "lab") {
-      return { x: x + 76, y: y - 44 };
-    }
-    if (type === "product") {
-      return { x: x + 70, y: y + 92 };
-    }
-    if (type === "shield" || type === "profile") {
-      return { x: x - 30, y: y - 72 };
-    }
-    if (type === "check") {
-      return { x: x + 96, y: y + 8 };
-    }
-    return { x: x + 54, y: y + 18 };
   }
 
   drawSupplementSymbol(ctx, type, x, y, alpha, scale = 1, angle = 0) {
@@ -2547,12 +2771,8 @@ class ProjectVisualController {
     ctx.strokeStyle =
       type === "warning"
         ? `rgba(146, 90, 53, ${alpha})`
-        : type === "product"
-        ? `rgba(103, 84, 71, ${alpha * 0.58})`
         : type === "check" || type === "shield"
         ? `rgba(157, 91, 50, ${alpha})`
-        : type === "lab" || type === "profile"
-        ? `rgba(111, 147, 155, ${alpha * 0.78})`
         : `rgba(123, 71, 41, ${alpha})`;
     ctx.lineWidth = 1.55;
     if (type === "capsule") {
@@ -2566,28 +2786,7 @@ class ProjectVisualController {
       ctx.moveTo(0, -5.5);
       ctx.lineTo(0, 5.5);
       ctx.stroke();
-    } else if (type === "tablet") {
-      ctx.beginPath();
-      ctx.arc(0, 0, 9, 0, Math.PI * 2);
-      ctx.moveTo(-6, 0);
-      ctx.lineTo(6, 0);
-      ctx.stroke();
-    } else if (type === "bottle") {
-      ctx.beginPath();
-      ctx.moveTo(-5, -14);
-      ctx.lineTo(5, -14);
-      ctx.moveTo(-3, -14);
-      ctx.lineTo(-3, -8);
-      ctx.lineTo(-8, -2);
-      ctx.lineTo(-8, 12);
-      ctx.lineTo(8, 12);
-      ctx.lineTo(8, -2);
-      ctx.lineTo(3, -8);
-      ctx.lineTo(3, -14);
-      ctx.moveTo(-5, 2);
-      ctx.lineTo(5, 2);
-      ctx.stroke();
-    } else if (type === "doc" || type === "product") {
+    } else if (type === "doc") {
       ctx.beginPath();
       ctx.moveTo(-8, -12);
       ctx.lineTo(6, -12);
@@ -2626,25 +2825,6 @@ class ProjectVisualController {
       ctx.moveTo(0, 8);
       ctx.lineTo(0.01, 8);
       ctx.stroke();
-    } else if (type === "lab") {
-      ctx.beginPath();
-      ctx.moveTo(-5, -12);
-      ctx.lineTo(5, -12);
-      ctx.moveTo(-2, -12);
-      ctx.lineTo(-2, 1);
-      ctx.lineTo(-9, 13);
-      ctx.lineTo(9, 13);
-      ctx.lineTo(2, 1);
-      ctx.lineTo(2, -12);
-      ctx.moveTo(-5, 6);
-      ctx.lineTo(5, 6);
-      ctx.stroke();
-    } else if (type === "profile") {
-      ctx.beginPath();
-      ctx.arc(0, -5, 4.5, 0, Math.PI * 2);
-      ctx.moveTo(-9, 11);
-      ctx.quadraticCurveTo(0, 2, 9, 11);
-      ctx.stroke();
     } else {
       ctx.beginPath();
       ctx.moveTo(-10, 0);
@@ -2656,16 +2836,21 @@ class ProjectVisualController {
   }
 }
 
-class FeaturedDrawerController {
+class FeaturedStageController {
   constructor(options) {
     this.buttons = options.buttons;
-    this.drawer = options.drawer;
-    this.drawerTitle = options.drawerTitle;
-    this.drawerKicker = options.drawerKicker;
-    this.drawerStage = options.drawerStage;
+    this.stage = options.stage;
+    this.panel = options.panel;
+    this.scrim = options.scrim;
+    this.title = options.title;
+    this.kicker = options.kicker;
+    this.content = options.content;
+    this.rail = options.rail;
     this.closeButton = options.closeButton;
     this.heroLinks = options.heroLinks;
     this.heroField = options.heroField;
+    this.ribbon = options.ribbon;
+    this.pageTrace = options.pageTrace;
     this.projectVisual = options.projectVisual;
     this.templates = new Map(
       Array.from(document.querySelectorAll("[data-project-template]")).map((template) => [
@@ -2674,10 +2859,17 @@ class FeaturedDrawerController {
       ])
     );
     this.meta = new Map();
+    this.order = [];
     this.activeProject = null;
-    this.closeTimer = 0;
+    this.lastTrigger = null;
+    this.hideTimer = 0;
+    this.settleTimer = 0;
+    this.switchTimer = 0;
+
+    this.handleKeydown = this.handleKeydown.bind(this);
 
     this.collectMeta();
+    this.buildRail();
     this.bind();
     this.setCurrentHeroProject("neuropath");
     this.syncFromHash();
@@ -2689,9 +2881,33 @@ class FeaturedDrawerController {
       const id = button.dataset.project;
       const title = button.querySelector(".project-card-title")?.textContent.trim() || id;
       const category = button.querySelector(".project-category")?.textContent.trim() || "Case study";
+      const number = button.querySelector(".project-number")?.textContent.trim() || "";
       if (id && card) {
-        this.meta.set(id, { id, mode: normalizeMode(id), card, button, title, category });
+        this.meta.set(id, { id, mode: normalizeMode(id), card, button, title, category, number });
+        this.order.push(id);
       }
+    });
+  }
+
+  buildRail() {
+    if (!this.rail) {
+      return;
+    }
+    this.order.forEach((id) => {
+      const meta = this.meta.get(id);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "stage-rail-button";
+      const index = document.createElement("span");
+      index.className = "stage-rail-index";
+      index.textContent = meta.number;
+      const name = document.createElement("span");
+      name.className = "stage-rail-name";
+      name.textContent = meta.title;
+      button.append(index, name);
+      button.addEventListener("click", () => this.switchTo(id));
+      meta.railButton = button;
+      this.rail.append(button);
     });
   }
 
@@ -2699,7 +2915,7 @@ class FeaturedDrawerController {
     this.buttons.forEach((button) => {
       const id = button.dataset.project;
       const mode = normalizeMode(id);
-      button.addEventListener("click", () => this.toggle(id));
+      button.addEventListener("click", () => this.open(id, { trigger: button }));
       button.addEventListener("pointerenter", () => this.heroField?.setHoverMode(mode));
       button.addEventListener("pointerleave", () => this.heroField?.setHoverMode(null));
       button.addEventListener("focusin", () => this.heroField?.setHoverMode(mode));
@@ -2711,7 +2927,7 @@ class FeaturedDrawerController {
       const mode = normalizeMode(id);
       link.addEventListener("click", (event) => {
         event.preventDefault();
-        this.toggle(id, { scrollToCard: true });
+        this.open(id, { trigger: link });
       });
       link.addEventListener("pointerenter", () => this.heroField?.setHoverMode(mode));
       link.addEventListener("pointerleave", () => this.heroField?.setHoverMode(null));
@@ -2720,20 +2936,50 @@ class FeaturedDrawerController {
     });
 
     this.closeButton?.addEventListener("click", () => this.close({ clearHash: true }));
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && this.activeProject) {
-        this.close({ clearHash: true });
-      }
-    });
+    this.scrim?.addEventListener("click", () => this.close({ clearHash: true }));
     window.addEventListener("hashchange", () => this.syncFromHash());
   }
 
-  setCardState(projectId) {
-    this.meta.forEach((item, id) => {
-      const active = id === projectId;
-      item.card.classList.toggle("is-active", active);
-      item.button.setAttribute("aria-expanded", String(active));
-    });
+  isOpen() {
+    return Boolean(this.stage) && !this.stage.hidden;
+  }
+
+  lockScroll() {
+    const compensation = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = compensation > 0 ? `${compensation}px` : "";
+    document.body.classList.add("stage-lock");
+  }
+
+  unlockScroll() {
+    document.body.classList.remove("stage-lock");
+    document.body.style.paddingRight = "";
+  }
+
+  handleKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.close({ clearHash: true });
+      return;
+    }
+    if (event.key !== "Tab" || !this.panel) {
+      return;
+    }
+    const focusables = Array.from(
+      this.panel.querySelectorAll('a[href], button:not([disabled]), [tabindex="0"]')
+    );
+    if (!focusables.length) {
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const current = document.activeElement;
+    if (event.shiftKey && (current === first || !this.panel.contains(current))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && current === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   setCurrentHeroProject(projectId) {
@@ -2751,106 +2997,183 @@ class FeaturedDrawerController {
   render(projectId) {
     const template = this.templates.get(projectId);
     const meta = this.meta.get(projectId);
-    if (!template || !meta || !this.drawerStage || !this.drawerTitle || !this.drawerKicker) {
+    if (!template || !meta || !this.content || !this.title || !this.kicker) {
       return false;
     }
-    this.drawerStage.replaceChildren(template.content.cloneNode(true));
-    this.drawerTitle.textContent = meta.title;
-    this.drawerKicker.textContent = meta.category;
+    this.content.replaceChildren(template.content.cloneNode(true));
+    this.content.scrollTop = 0;
+    this.title.textContent = meta.title;
+    this.kicker.textContent = meta.category;
+    this.meta.forEach((item) => {
+      item.railButton?.classList.toggle("is-active", item.id === projectId);
+      if (item.railButton) {
+        if (item.id === projectId) {
+          item.railButton.setAttribute("aria-current", "true");
+        } else {
+          item.railButton.removeAttribute("aria-current");
+        }
+      }
+    });
     this.projectVisual?.setMode(meta.mode);
     return true;
   }
 
-  scrollStageIntoView(card) {
-    const anchor = card || this.drawer;
-    if (!anchor) {
-      return;
+  visibleRowRect(meta) {
+    if (!meta) {
+      return null;
     }
-    const offset = 82;
-    const target = anchor.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({
-      top: Math.max(0, target),
-      behavior: reducedMotionQuery.matches ? "auto" : "smooth",
-    });
+    const rect = meta.card.getBoundingClientRect();
+    if (rect.bottom < 60 || rect.top > window.innerHeight - 40) {
+      return null;
+    }
+    return rect;
   }
 
   open(projectId, options = {}) {
     const meta = this.meta.get(projectId);
-    if (!meta || !this.drawer) {
+    if (!meta || !this.stage || !this.panel) {
       return;
     }
-    if (this.closeTimer) {
-      window.clearTimeout(this.closeTimer);
-      this.closeTimer = 0;
+    if (this.isOpen()) {
+      this.switchTo(projectId);
+      return;
+    }
+    if (this.hideTimer) {
+      window.clearTimeout(this.hideTimer);
+      this.hideTimer = 0;
     }
     if (!this.render(projectId)) {
       return;
     }
     this.activeProject = projectId;
-    this.setCardState(projectId);
+    this.lastTrigger = options.trigger || meta.button;
     this.setCurrentHeroProject(projectId);
     this.heroField?.setLockedMode(meta.mode);
-    meta.card.after(this.drawer);
-    this.drawer.hidden = false;
+
+    const reduced = reducedMotionQuery.matches;
+    const fromRect = reduced ? null : this.visibleRowRect(meta);
+    this.lockScroll();
+    this.stage.hidden = false;
+    this.heroField?.setSuspended(true);
+    this.ribbon?.setSuspended(true);
+    this.pageTrace?.setSuspended(true);
+
+    // FLIP morph: the clicked row's rectangle inflates into the stage panel
+    if (!reduced) {
+      const panelRect = this.panel.getBoundingClientRect();
+      this.panel.style.transition = "none";
+      this.panel.style.transformOrigin = "top left";
+      if (fromRect && panelRect.width > 0 && panelRect.height > 0) {
+        const dx = fromRect.left - panelRect.left;
+        const dy = fromRect.top - panelRect.top;
+        const sx = Math.max(0.08, fromRect.width / panelRect.width);
+        const sy = Math.max(0.08, fromRect.height / panelRect.height);
+        this.panel.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+      } else {
+        this.panel.style.transform = "translateY(16px) scale(0.97)";
+      }
+      void this.panel.offsetWidth;
+      this.panel.style.transition = "";
+    }
+
     window.requestAnimationFrame(() => {
-      this.drawer.classList.add("is-open");
-      this.drawer.classList.add("is-activating");
+      this.stage.classList.add("is-open");
+      this.panel.style.transform = "";
       this.projectVisual?.resize();
       this.projectVisual?.syncLoop();
-      if (options.scrollToStage !== false) {
-        this.scrollStageIntoView(meta.card);
-      }
-      window.setTimeout(() => {
-        this.drawer?.classList.remove("is-activating");
-        this.drawerTitle?.focus({ preventScroll: true });
-      }, reducedMotionQuery.matches ? 0 : 320);
+      document.addEventListener("keydown", this.handleKeydown);
+      this.settleTimer = window.setTimeout(() => {
+        this.title?.focus({ preventScroll: true });
+      }, reduced ? 0 : 480);
     });
+
     if (options.updateHash !== false) {
       window.history.replaceState(null, "", `#${projectId}`);
     }
   }
 
+  switchTo(projectId) {
+    if (!this.isOpen() || !this.meta.has(projectId)) {
+      return;
+    }
+    if (projectId === this.activeProject) {
+      return;
+    }
+    const meta = this.meta.get(projectId);
+    this.activeProject = projectId;
+    this.setCurrentHeroProject(projectId);
+    this.heroField?.setLockedMode(meta.mode);
+    window.history.replaceState(null, "", `#${projectId}`);
+    if (reducedMotionQuery.matches) {
+      this.render(projectId);
+      return;
+    }
+    if (this.switchTimer) {
+      window.clearTimeout(this.switchTimer);
+    }
+    this.stage.classList.add("is-switching");
+    this.switchTimer = window.setTimeout(() => {
+      this.switchTimer = 0;
+      this.render(projectId);
+      this.stage.classList.remove("is-switching");
+    }, 180);
+  }
+
   close(options = {}) {
-    if (!this.drawer || this.drawer.hidden) {
-      this.activeProject = null;
-      this.setCardState(null);
-      this.heroField?.setLockedMode(null);
-      this.projectVisual?.close();
+    if (!this.isOpen()) {
       return;
     }
     const closingProject = this.activeProject;
+    const meta = this.meta.get(closingProject);
     this.activeProject = null;
-    this.drawer.classList.remove("is-open");
-    this.setCardState(null);
-    this.heroField?.setLockedMode(null);
-    this.setCurrentHeroProject("neuropath");
-    this.projectVisual?.close();
-
+    document.removeEventListener("keydown", this.handleKeydown);
+    if (this.settleTimer) {
+      window.clearTimeout(this.settleTimer);
+      this.settleTimer = 0;
+    }
     if (options.clearHash && closingProject) {
       this.clearHash(closingProject);
     }
 
     const finish = () => {
-      this.drawer.hidden = true;
-      this.drawerStage?.replaceChildren();
+      this.hideTimer = 0;
+      this.stage.classList.remove("is-open", "is-closing", "is-switching");
+      this.stage.hidden = true;
+      this.panel.style.transform = "";
+      this.content?.replaceChildren();
+      this.unlockScroll();
+      this.projectVisual?.close();
+      this.heroField?.setLockedMode(null);
+      this.heroField?.setSuspended(false);
+      this.ribbon?.setSuspended(false);
+      this.pageTrace?.setSuspended(false);
+      this.setCurrentHeroProject("neuropath");
+      const trigger = this.lastTrigger;
+      this.lastTrigger = null;
+      trigger?.focus({ preventScroll: true });
     };
 
     if (reducedMotionQuery.matches) {
       finish();
       return;
     }
-    this.closeTimer = window.setTimeout(() => {
-      this.closeTimer = 0;
-      finish();
-    }, 420);
-  }
 
-  toggle(projectId, options = {}) {
-    if (this.activeProject === projectId) {
-      this.close({ clearHash: true });
-      return;
+    // reverse morph: the stage folds back into the row it came from
+    this.stage.classList.add("is-closing");
+    const rect = this.visibleRowRect(meta);
+    if (rect) {
+      const panelRect = this.panel.getBoundingClientRect();
+      const dx = rect.left - panelRect.left;
+      const dy = rect.top - panelRect.top;
+      const sx = Math.max(0.08, rect.width / panelRect.width);
+      const sy = Math.max(0.08, rect.height / panelRect.height);
+      this.panel.style.transformOrigin = "top left";
+      this.panel.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    } else {
+      this.panel.style.transform = "translateY(12px) scale(0.98)";
     }
-    this.open(projectId, options);
+    this.stage.classList.remove("is-open");
+    this.hideTimer = window.setTimeout(finish, 430);
   }
 
   clearHash(projectId) {
@@ -2863,22 +3186,41 @@ class FeaturedDrawerController {
   syncFromHash() {
     const hash = window.location.hash.replace(/^#/, "");
     if (this.meta.has(hash)) {
-      this.open(hash, { updateHash: false });
+      if (this.isOpen()) {
+        this.switchTo(hash);
+      } else {
+        this.open(hash, { updateHash: false });
+      }
       return;
     }
-    if (!this.activeProject) {
-      this.setCurrentHeroProject("neuropath");
-      this.heroField?.setLockedMode(null);
+    if (this.isOpen()) {
+      this.close({ clearHash: false });
+      return;
     }
+    this.setCurrentHeroProject("neuropath");
+    this.heroField?.setLockedMode(null);
   }
 }
 
 function setupReveal(motion) {
-  const revealItems = Array.from(document.querySelectorAll(".reveal"));
+  const revealItems = Array.from(document.querySelectorAll(".reveal, [data-rule]"));
   if (motion.reduced || !("IntersectionObserver" in window)) {
     revealItems.forEach((item) => item.classList.add("is-visible"));
     return;
   }
+  const groupCounters = new Map();
+  revealItems.forEach((item) => {
+    if (!item.classList.contains("reveal")) {
+      return;
+    }
+    const group = item.closest("[data-reveal-group]");
+    if (!group) {
+      return;
+    }
+    const index = groupCounters.get(group) || 0;
+    item.style.setProperty("--reveal-delay", `${Math.min(index * 70, 420)}ms`);
+    groupCounters.set(group, index + 1);
+  });
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -2947,23 +3289,26 @@ const projectVisual = new ProjectVisualController(
   motion
 );
 
-new GlyphRibbonController(document.querySelector("[data-ribbon]"), motion);
-new PageTraceController(document.querySelector("[data-page-trace]"), motion);
+const glyphRibbon = new GlyphRibbonController(document.querySelector("[data-ribbon]"), motion);
+const pageTrace = new PageTraceController(document.querySelector("[data-page-trace]"), motion);
 new SpotlightController(
-  Array.from(
-    document.querySelectorAll(".project-card-button, .archive-row, .drawer-surface")
-  )
+  Array.from(document.querySelectorAll(".project-card-button, .archive-row"))
 );
 
-new FeaturedDrawerController({
+new FeaturedStageController({
   buttons: Array.from(document.querySelectorAll(".project-card-button[data-project]")),
-  drawer: document.getElementById("project-drawer"),
-  drawerTitle: document.getElementById("project-drawer-title"),
-  drawerKicker: document.getElementById("project-drawer-kicker"),
-  drawerStage: document.getElementById("project-drawer-content"),
-  closeButton: document.querySelector(".drawer-close"),
+  stage: document.getElementById("project-stage"),
+  panel: document.querySelector(".stage-panel"),
+  scrim: document.querySelector(".stage-scrim"),
+  title: document.getElementById("project-stage-title"),
+  kicker: document.getElementById("project-stage-kicker"),
+  content: document.getElementById("project-stage-content"),
+  rail: document.querySelector("[data-stage-rail]"),
+  closeButton: document.querySelector(".stage-close"),
   heroLinks: Array.from(document.querySelectorAll("[data-project-link]")),
   heroField,
+  ribbon: glyphRibbon,
+  pageTrace,
   projectVisual,
 });
 
