@@ -708,6 +708,22 @@ body.cursor-enabled.hov #cur-ring {
   color: #fdf6e7;
 }
 
+.action--invert.is-copied {
+  border-color: rgba(255, 226, 178, 0.74);
+  background: rgba(244, 232, 210, 0.12);
+  color: #fdf6e7;
+}
+
+.email-copy-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 /* hero project index */
 
 .hero-index-block {

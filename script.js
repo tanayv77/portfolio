@@ -3407,6 +3407,95 @@ function setupNavObserver() {
   update();
 }
 
+function setupEmailCopy() {
+  const links = Array.from(document.querySelectorAll("[data-copy-email]"));
+  const copyText = async (value) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+
+    const input = document.createElement("textarea");
+    input.value = value;
+    input.setAttribute("readonly", "");
+    input.style.position = "fixed";
+    input.style.top = "0";
+    input.style.left = "-9999px";
+    document.body.append(input);
+    input.select();
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } finally {
+      input.remove();
+    }
+    return copied;
+  };
+
+  links.forEach((link) => {
+    const email = link.dataset.copyEmail;
+    const label = link.querySelector("[data-email-label]") || link;
+    const statusId = link.getAttribute("aria-describedby");
+    const status = statusId ? document.getElementById(statusId) : null;
+    const defaultLabel = label.textContent;
+    let resetTimer = 0;
+
+    const openEmailFallback = () => {
+      window.location.href = link.href || `mailto:${email}`;
+    };
+
+    const reset = () => {
+      resetTimer = 0;
+      label.textContent = defaultLabel;
+      link.classList.remove("is-copied");
+      if (status) {
+        status.textContent = "";
+      }
+    };
+
+    const showCopied = () => {
+      if (resetTimer) {
+        window.clearTimeout(resetTimer);
+      }
+      label.textContent = "COPIED";
+      link.classList.add("is-copied");
+      if (status) {
+        status.textContent = `${email} copied to clipboard.`;
+      }
+      resetTimer = window.setTimeout(reset, 1700);
+    };
+
+    const activate = async () => {
+      if (!email) {
+        return;
+      }
+
+      try {
+        if (await copyText(email)) {
+          showCopied();
+          return;
+        }
+        openEmailFallback();
+      } catch {
+        openEmailFallback();
+      }
+    };
+
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      activate();
+    });
+
+    link.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      activate();
+    });
+  });
+}
+
 const motion = new ReducedMotionManager(reducedMotionQuery);
 
 const cursor = new CursorController(
@@ -3446,6 +3535,7 @@ new FeaturedStageController({
 
 setupReveal(motion);
 setupNavObserver();
+setupEmailCopy();
 
 motion.onChange(() => {
   cursor.sync();
