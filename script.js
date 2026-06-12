@@ -26,6 +26,10 @@ function normalizeMode(projectId) {
   return modeAlias[projectId] || "neuropath";
 }
 
+function afterAnimationFrame(callback) {
+  window.requestAnimationFrame(callback);
+}
+
 function hashSeed(input) {
   let hash = 2166136261;
   for (let index = 0; index < input.length; index += 1) {
@@ -1419,10 +1423,13 @@ class ProjectVisualController {
     this.active = false;
     this.scene = null;
     this.lastTime = 0;
+    this.resizeFrame = 0;
+    this.resizeObserver = null;
     this.pointer = { x: 0, y: 0, prevX: 0, prevY: 0, vx: 1, vy: 0, active: false, strength: 0 };
 
     this.draw = this.draw.bind(this);
     this.resize = this.resize.bind(this);
+    this.queueResize = this.queueResize.bind(this);
 
     if (!this.canvas) {
       return;
@@ -1431,10 +1438,10 @@ class ProjectVisualController {
     this.setupEvents();
     this.observe();
     this.motion.onChange(() => {
-      this.resize();
+      this.queueResize();
       this.syncLoop();
     });
-    window.addEventListener("resize", () => this.resize());
+    window.addEventListener("resize", this.queueResize);
   }
 
   setupEvents() {
@@ -1506,37 +1513,119 @@ class ProjectVisualController {
       { threshold: 0.1 }
     );
     observer.observe(this.panel);
+
+    if ("ResizeObserver" in window) {
+      this.resizeObserver = new ResizeObserver(this.queueResize);
+      this.resizeObserver.observe(this.panel);
+    }
+  }
+
+  resetPointer() {
+    this.pointer = { x: 0, y: 0, prevX: 0, prevY: 0, vx: 1, vy: 0, active: false, strength: 0 };
+  }
+
+  stopFrame() {
+    if (this.frame) {
+      window.cancelAnimationFrame(this.frame);
+      this.frame = 0;
+    }
+    if (this.resizeFrame) {
+      window.cancelAnimationFrame(this.resizeFrame);
+      this.resizeFrame = 0;
+    }
+  }
+
+  prepareMode(mode) {
+    this.stopFrame();
+    this.mode = normalizeMode(mode);
+    this.active = false;
+    this.lastTime = 0;
+    this.scene = null;
+    this.resetPointer();
+    this.clearCanvas();
   }
 
   setMode(mode) {
-    this.mode = normalizeMode(mode);
+    return this.startMode(mode);
+  }
+
+  startMode(mode) {
+    this.prepareMode(mode);
     this.active = true;
-    this.lastTime = 0;
-    this.resize();
+    if (!this.resize()) {
+      this.active = false;
+      return false;
+    }
     this.syncLoop();
+    return true;
   }
 
   close() {
     this.active = false;
-    this.pointer.active = false;
-    this.syncLoop();
+    this.scene = null;
+    this.lastTime = 0;
+    this.resetPointer();
+    this.stopFrame();
+    this.clearCanvas();
+  }
+
+  measureVisualPanel() {
+    const target = this.panel || this.canvas;
+    if (!target) {
+      return null;
+    }
+    const width = Math.round(target.clientWidth || target.offsetWidth || 0);
+    const height = Math.round(target.clientHeight || target.offsetHeight || 0);
+    if (width < 80 || height < 80) {
+      return null;
+    }
+    return { width, height };
+  }
+
+  resizeCanvasToDisplaySize(width, height, dpr) {
+    const pixelWidth = Math.round(width * dpr);
+    const pixelHeight = Math.round(height * dpr);
+    this.canvas.width = pixelWidth;
+    this.canvas.height = pixelHeight;
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  clearCanvas() {
+    if (!this.ctx || !this.canvas) {
+      return;
+    }
+    this.ctx.clearRect(0, 0, this.width, this.height);
+  }
+
+  queueResize() {
+    if (!this.active || this.resizeFrame) {
+      return;
+    }
+    this.resizeFrame = window.requestAnimationFrame(() => {
+      this.resizeFrame = 0;
+      if (this.resize()) {
+        this.syncLoop();
+      }
+    });
   }
 
   resize() {
     if (!this.canvas || !this.ctx) {
-      return;
+      return false;
     }
-    const rect = (this.panel || this.canvas).getBoundingClientRect();
-    this.width = Math.max(1, Math.round(rect.width));
-    this.height = Math.max(1, Math.round(rect.height));
+    const measured = this.measureVisualPanel();
+    if (!measured) {
+      return false;
+    }
+    this.width = measured.width;
+    this.height = measured.height;
     this.dpr = clamp(window.devicePixelRatio || 1, 1, 1.7);
-    this.canvas.width = Math.round(this.width * this.dpr);
-    this.canvas.height = Math.round(this.height * this.dpr);
-    this.canvas.style.width = `${this.width}px`;
-    this.canvas.style.height = `${this.height}px`;
-    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.resizeCanvasToDisplaySize(this.width, this.height, this.dpr);
     this.scene = this.buildScene();
     this.draw(0);
+    return true;
   }
 
   buildScene() {
@@ -2865,6 +2954,7 @@ class FeaturedStageController {
     this.hideTimer = 0;
     this.settleTimer = 0;
     this.switchTimer = 0;
+    this.visualTicket = 0;
 
     this.handleKeydown = this.handleKeydown.bind(this);
 
@@ -2994,7 +3084,7 @@ class FeaturedStageController {
     }
   }
 
-  render(projectId) {
+  render(projectId, options = {}) {
     const template = this.templates.get(projectId);
     const meta = this.meta.get(projectId);
     if (!template || !meta || !this.content || !this.title || !this.kicker) {
@@ -3014,8 +3104,48 @@ class FeaturedStageController {
         }
       }
     });
-    this.projectVisual?.setMode(meta.mode);
+    if (options.prepareVisual !== false) {
+      this.projectVisual?.prepareMode(meta.mode);
+    }
     return true;
+  }
+
+  startProjectVisual(projectId, options = {}) {
+    const meta = this.meta.get(projectId);
+    if (!meta || !this.stage) {
+      return;
+    }
+    const ticket = ++this.visualTicket;
+    const frames = options.frames ?? 2;
+    const attempts = options.attempts ?? 4;
+    this.stage.classList.remove("is-visual-ready");
+
+    const start = (remainingAttempts) => {
+      if (ticket !== this.visualTicket || !this.isOpen() || this.activeProject !== projectId) {
+        return;
+      }
+      if (!this.projectVisual || this.projectVisual.startMode(meta.mode)) {
+        this.stage.classList.add("is-visual-ready");
+        return;
+      }
+      if (remainingAttempts <= 0) {
+        return;
+      }
+      afterAnimationFrame(() => start(remainingAttempts - 1));
+    };
+
+    const waitForLayout = (remainingFrames) => {
+      if (ticket !== this.visualTicket || !this.isOpen() || this.activeProject !== projectId) {
+        return;
+      }
+      if (remainingFrames <= 0) {
+        start(attempts);
+        return;
+      }
+      afterAnimationFrame(() => waitForLayout(remainingFrames - 1));
+    };
+
+    waitForLayout(frames);
   }
 
   visibleRowRect(meta) {
@@ -3079,8 +3209,7 @@ class FeaturedStageController {
     window.requestAnimationFrame(() => {
       this.stage.classList.add("is-open");
       this.panel.style.transform = "";
-      this.projectVisual?.resize();
-      this.projectVisual?.syncLoop();
+      this.startProjectVisual(projectId);
       document.addEventListener("keydown", this.handleKeydown);
       this.settleTimer = window.setTimeout(() => {
         this.title?.focus({ preventScroll: true });
@@ -3106,6 +3235,7 @@ class FeaturedStageController {
     window.history.replaceState(null, "", `#${projectId}`);
     if (reducedMotionQuery.matches) {
       this.render(projectId);
+      this.startProjectVisual(projectId, { frames: 1 });
       return;
     }
     if (this.switchTimer) {
@@ -3116,6 +3246,7 @@ class FeaturedStageController {
       this.switchTimer = 0;
       this.render(projectId);
       this.stage.classList.remove("is-switching");
+      this.startProjectVisual(projectId, { frames: 1 });
     }, 180);
   }
 
@@ -3126,6 +3257,7 @@ class FeaturedStageController {
     const closingProject = this.activeProject;
     const meta = this.meta.get(closingProject);
     this.activeProject = null;
+    this.visualTicket += 1;
     document.removeEventListener("keydown", this.handleKeydown);
     if (this.settleTimer) {
       window.clearTimeout(this.settleTimer);
@@ -3137,7 +3269,7 @@ class FeaturedStageController {
 
     const finish = () => {
       this.hideTimer = 0;
-      this.stage.classList.remove("is-open", "is-closing", "is-switching");
+      this.stage.classList.remove("is-open", "is-closing", "is-switching", "is-visual-ready");
       this.stage.hidden = true;
       this.panel.style.transform = "";
       this.content?.replaceChildren();

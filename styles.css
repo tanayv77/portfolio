@@ -1641,6 +1641,10 @@ body.stage-lock {
   height: 100%;
 }
 
+.project-stage:not(.is-visual-ready) .stage-visual canvas {
+  visibility: hidden;
+}
+
 .stage-content {
   min-width: 0;
   min-height: 0;
