@@ -1684,6 +1684,7 @@ class ProjectVisualController {
         rays,
         rand,
         lens: { x: this.width * 0.6, y: this.height * 0.48 },
+        wasLensActive: false,
       };
     }
     if (this.mode === "motorproof") {
@@ -2722,44 +2723,59 @@ class ProjectVisualController {
     // slightly, close rays whip around, the closest plunge and are captured.
     const scene = this.scene;
     const pointerStrength = this.pointer.strength;
+    const lensStrength = this.pointer.active ? pointerStrength : 0;
+    const lensActive = lensStrength > 0.02;
     const targetX = this.pointer.active
       ? this.pointer.x
-      : this.width * (0.6 + Math.sin(time * 0.09) * 0.07);
+      : scene.lens.x;
     const targetY = this.pointer.active
       ? this.pointer.y
-      : this.height * (0.46 + Math.sin(time * 0.127 + 1.2) * 0.1);
-    const follow = 1 - Math.exp(-dt * (this.pointer.active ? 14 : 2.2));
+      : scene.lens.y;
+    const follow = this.pointer.active ? 1 - Math.exp(-dt * 14) : 1;
     scene.lens.x = lerp(scene.lens.x, targetX, follow);
     scene.lens.y = lerp(scene.lens.y, targetY, follow);
     const lensX = scene.lens.x;
     const lensY = scene.lens.y;
-    const mass = (this.width < 520 ? 8.2e5 : 1.45e6) * (0.58 + pointerStrength * 1.12);
-    const captureRadius = 11 + pointerStrength * 15;
+    const mass = lensStrength > 0
+      ? (this.width < 520 ? 8.2e5 : 1.45e6) * (0.58 + lensStrength * 1.12)
+      : 0;
+    const captureRadius = 11 + lensStrength * 15;
+
+    if (scene.wasLensActive && !lensActive) {
+      scene.rays.forEach((ray) => {
+        ray.trail.length = 0;
+        ray.captured = false;
+        ray.captureAge = 0;
+      });
+    }
+    scene.wasLensActive = lensActive;
 
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    const haloRadius = this.width < 520 ? 118 : 168;
-    const halo = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, haloRadius);
-    halo.addColorStop(0, `rgba(210, 161, 95, ${0.06 + pointerStrength * 0.12})`);
-    halo.addColorStop(0.24, `rgba(157, 91, 50, ${0.028 + pointerStrength * 0.075})`);
-    halo.addColorStop(1, "rgba(210, 161, 95, 0)");
-    ctx.fillStyle = halo;
-    ctx.fillRect(lensX - haloRadius, lensY - haloRadius, haloRadius * 2, haloRadius * 2);
+    if (lensActive) {
+      const haloRadius = this.width < 520 ? 118 : 168;
+      const halo = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, haloRadius);
+      halo.addColorStop(0, `rgba(210, 161, 95, ${0.06 + lensStrength * 0.12})`);
+      halo.addColorStop(0.24, `rgba(157, 91, 50, ${0.028 + lensStrength * 0.075})`);
+      halo.addColorStop(1, "rgba(210, 161, 95, 0)");
+      ctx.fillStyle = halo;
+      ctx.fillRect(lensX - haloRadius, lensY - haloRadius, haloRadius * 2, haloRadius * 2);
 
-    const ringRadius = 16 + pointerStrength * 16;
-    const ringAlpha = 0.08 + pointerStrength * 0.18;
-    ctx.strokeStyle = `rgba(210, 161, 95, ${ringAlpha})`;
-    ctx.lineWidth = 0.9 + pointerStrength * 0.85;
-    ctx.beginPath();
-    ctx.arc(lensX, lensY, ringRadius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = `rgba(255, 231, 187, ${ringAlpha * 0.34})`;
-    ctx.lineWidth = 0.55;
-    ctx.beginPath();
-    ctx.arc(lensX, lensY, ringRadius * 0.72, -0.35, Math.PI * 1.35);
-    ctx.stroke();
+      const ringRadius = 16 + lensStrength * 16;
+      const ringAlpha = 0.08 + lensStrength * 0.18;
+      ctx.strokeStyle = `rgba(210, 161, 95, ${ringAlpha})`;
+      ctx.lineWidth = 0.9 + lensStrength * 0.85;
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255, 231, 187, ${ringAlpha * 0.34})`;
+      ctx.lineWidth = 0.55;
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, ringRadius * 0.72, -0.35, Math.PI * 1.35);
+      ctx.stroke();
+    }
 
     scene.rays.forEach((ray) => {
       if (ray.captured) {
@@ -2771,30 +2787,35 @@ class ProjectVisualController {
         ray.x = lensX + ray.captureOffsetX;
         ray.y = lensY + ray.captureOffsetY;
       } else {
+        if (lensStrength <= 0) {
+          ray.x += ray.vx * dt;
+          ray.y += ray.vy * dt;
+        } else {
           const steps = 4;
-        const h = dt / steps;
-        for (let step = 0; step < steps; step += 1) {
-          const dx = lensX - ray.x;
-          const dy = lensY - ray.y;
-          const r2 = dx * dx + dy * dy;
-          const r = Math.sqrt(r2);
-          if (r < captureRadius && pointerStrength > 0.18) {
-            ray.captured = true;
-            ray.captureAge = 0;
-            ray.captureOffsetX = ray.x - lensX;
-            ray.captureOffsetY = ray.y - lensY;
-            break;
+          const h = dt / steps;
+          for (let step = 0; step < steps; step += 1) {
+            const dx = lensX - ray.x;
+            const dy = lensY - ray.y;
+            const r2 = dx * dx + dy * dy;
+            const r = Math.sqrt(r2);
+            if (r < captureRadius && lensStrength > 0.18) {
+              ray.captured = true;
+              ray.captureAge = 0;
+              ray.captureOffsetX = ray.x - lensX;
+              ray.captureOffsetY = ray.y - lensY;
+              break;
+            }
+            const closeBoost = 1 + ease(1 - r / 155) * (1.35 + lensStrength * 2.4);
+            const a = (mass * closeBoost) / Math.max(r2, 430);
+            const inv = 1 / Math.max(r, 1);
+            ray.vx += dx * inv * a * h;
+            ray.vy += dy * inv * a * h;
+            const vNorm = Math.max(1, Math.hypot(ray.vx, ray.vy));
+            ray.vx = (ray.vx / vNorm) * ray.speed;
+            ray.vy = (ray.vy / vNorm) * ray.speed;
+            ray.x += ray.vx * h;
+            ray.y += ray.vy * h;
           }
-          const closeBoost = 1 + ease(1 - r / 155) * (1.35 + pointerStrength * 2.4);
-          const a = (mass * closeBoost) / Math.max(r2, 430);
-          const inv = 1 / Math.max(r, 1);
-          ray.vx += dx * inv * a * h;
-          ray.vy += dy * inv * a * h;
-          const vNorm = Math.max(1, Math.hypot(ray.vx, ray.vy));
-          ray.vx = (ray.vx / vNorm) * ray.speed;
-          ray.vy = (ray.vy / vNorm) * ray.speed;
-          ray.x += ray.vx * h;
-          ray.y += ray.vy * h;
         }
       }
 
@@ -2837,11 +2858,11 @@ class ProjectVisualController {
       ctx.fill();
     });
 
-    if (pointerStrength > 0.06) {
-      const coreRadius = 4.2 + pointerStrength * 6.8;
+    if (lensStrength > 0.06) {
+      const coreRadius = 4.2 + lensStrength * 6.8;
       const core = ctx.createRadialGradient(lensX, lensY, 0, lensX, lensY, coreRadius * 1.35);
-      core.addColorStop(0, `rgba(18, 9, 4, ${0.72 * pointerStrength})`);
-      core.addColorStop(0.74, `rgba(30, 17, 7, ${0.58 * pointerStrength})`);
+      core.addColorStop(0, `rgba(18, 9, 4, ${0.72 * lensStrength})`);
+      core.addColorStop(0.74, `rgba(30, 17, 7, ${0.58 * lensStrength})`);
       core.addColorStop(1, "rgba(30, 17, 7, 0)");
       ctx.fillStyle = core;
       ctx.beginPath();
