@@ -246,6 +246,9 @@ class CursorController {
 class SpotlightController {
   constructor(surfaces) {
     this.surfaces = surfaces;
+    this.activeSurface = null;
+    this.clearIfOutside = this.clearIfOutside.bind(this);
+    this.clearAll = this.clearAll.bind(this);
     this.setup();
   }
 
@@ -254,18 +257,47 @@ class SpotlightController {
       surface.classList.add("spotlight-surface");
       surface.addEventListener("pointerenter", (event) => this.update(surface, event));
       surface.addEventListener("pointermove", (event) => this.update(surface, event));
-      surface.addEventListener("pointerleave", () => surface.classList.remove("is-spotlit"));
+      surface.addEventListener("pointerleave", () => {
+        if (this.activeSurface === surface) {
+          this.activeSurface = null;
+        }
+        surface.classList.remove("is-spotlit");
+      });
     });
+    window.addEventListener("pointermove", this.clearIfOutside, { passive: true });
+    window.addEventListener("scroll", this.clearAll, { passive: true });
+    window.addEventListener("blur", this.clearAll);
   }
 
   update(surface, event) {
     if (event.pointerType === "touch") {
       return;
     }
+    if (this.activeSurface && this.activeSurface !== surface) {
+      this.activeSurface.classList.remove("is-spotlit");
+    }
+    this.activeSurface = surface;
     const rect = surface.getBoundingClientRect();
     surface.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
     surface.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
     surface.classList.add("is-spotlit");
+  }
+
+  clearIfOutside(event) {
+    if (event.pointerType === "touch" || !this.activeSurface) {
+      return;
+    }
+    if (!this.activeSurface.contains(event.target)) {
+      this.activeSurface.classList.remove("is-spotlit");
+      this.activeSurface = null;
+    }
+  }
+
+  clearAll() {
+    if (this.activeSurface) {
+      this.activeSurface.classList.remove("is-spotlit");
+      this.activeSurface = null;
+    }
   }
 }
 

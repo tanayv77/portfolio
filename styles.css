@@ -965,9 +965,7 @@ body.cursor-enabled.hov #cur-ring {
   display: block;
   border-top: 1px solid var(--line-mid);
   border-bottom: 1px solid var(--line-mid);
-  background:
-    radial-gradient(ellipse at 16% 6%, rgba(210, 162, 95, 0.13), transparent 34%),
-    radial-gradient(ellipse at 92% 74%, rgba(111, 147, 155, 0.055), transparent 34%);
+  background: transparent;
 }
 
 .featured-card {
