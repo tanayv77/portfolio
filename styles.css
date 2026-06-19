@@ -63,10 +63,11 @@ body {
   overflow-x: hidden;
   color: var(--text);
   background:
-    radial-gradient(circle at 16% 2%, rgba(253, 248, 236, 0.9), transparent 24rem),
-    radial-gradient(circle at 84% 6%, rgba(210, 162, 95, 0.2), transparent 26rem),
-    radial-gradient(circle at 80% 46%, rgba(206, 170, 122, 0.14), transparent 32rem),
-    linear-gradient(180deg, #fbf5e8 0%, var(--paper) 34%, var(--paper-deep) 100%);
+    radial-gradient(circle at 12% 2%, rgba(253, 248, 236, 0.94), transparent 24rem),
+    radial-gradient(circle at 84% 4%, rgba(210, 162, 95, 0.24), transparent 29rem),
+    radial-gradient(circle at 88% 36%, rgba(111, 147, 155, 0.08), transparent 30rem),
+    radial-gradient(circle at 20% 74%, rgba(156, 81, 38, 0.09), transparent 34rem),
+    linear-gradient(180deg, #fbf5e8 0%, var(--paper) 32%, #f0e3cb 68%, var(--paper-deep) 100%);
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.62;
@@ -481,19 +482,30 @@ body.cursor-enabled.hov #cur-ring {
 .hero {
   position: relative;
   overflow: hidden;
-  padding: 48px 0 30px;
-  min-height: 540px;
+  padding: clamp(52px, 7vh, 84px) 0 42px;
+  min-height: clamp(610px, 82vh, 760px);
 }
 
 .hero::before {
   content: "";
   position: absolute;
-  inset: -16% 0 auto;
-  height: 76%;
+  inset: -18% -6% auto;
+  height: 92%;
   background:
-    radial-gradient(circle at 70% 28%, rgba(210, 162, 95, 0.2), transparent 28rem),
-    radial-gradient(circle at 90% 44%, rgba(111, 147, 155, 0.08), transparent 18rem);
+    radial-gradient(circle at 66% 31%, rgba(210, 162, 95, 0.22), transparent 31rem),
+    radial-gradient(circle at 88% 45%, rgba(111, 147, 155, 0.12), transparent 22rem),
+    linear-gradient(105deg, rgba(253, 248, 236, 0.72), transparent 48%);
   pointer-events: none;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 34%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(246, 239, 226, 0.92));
+  z-index: 1;
 }
 
 .hero-field {
@@ -518,7 +530,8 @@ body.cursor-enabled.hov #cur-ring {
 .hero-copy {
   width: min(46rem, 100%);
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  padding-top: clamp(20px, 5vh, 58px);
 }
 
 /* one-time arrival choreography */
@@ -566,14 +579,14 @@ body.cursor-enabled.hov #cur-ring {
   display: grid;
   color: var(--text);
   font-family: var(--font-display);
-  font-size: clamp(4rem, 7.4vw, 7.2rem);
+  font-size: clamp(4.35rem, 7.9vw, 8.1rem);
   font-weight: 400;
   letter-spacing: 0;
   line-height: 0.84;
 }
 
 .hero-statement {
-  max-width: 21ch;
+  max-width: 20ch;
   color: var(--text);
   font-family: var(--font-display);
   font-size: clamp(1.66rem, 2.16vw, 2.3rem);
@@ -764,8 +777,7 @@ body.cursor-enabled.hov #cur-ring {
 }
 
 .hero-index a:hover,
-.hero-index a:focus-visible,
-.hero-index a.is-current {
+.hero-index a:focus-visible {
   color: var(--text);
 }
 
@@ -781,9 +793,30 @@ body.cursor-enabled.hov #cur-ring {
 
 .symbol-ribbon {
   position: relative;
-  padding: 0;
+  padding: 10px 0 4px;
   opacity: 0;
   transition: opacity 480ms var(--ease-out);
+}
+
+.symbol-ribbon::before,
+.symbol-ribbon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.symbol-ribbon::before {
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(111, 58, 26, 0.18), transparent);
+}
+
+.symbol-ribbon::after {
+  bottom: -24px;
+  height: 70px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(210, 162, 95, 0.12), transparent 68%);
 }
 
 .symbol-ribbon.is-ready {
@@ -793,7 +826,7 @@ body.cursor-enabled.hov #cur-ring {
 .ribbon-canvas {
   display: block;
   width: 100%;
-  height: 248px;
+  height: clamp(268px, 25vw, 360px);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 9%, #000 91%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, #000 9%, #000 91%, transparent 100%);
 }
@@ -929,25 +962,41 @@ body.cursor-enabled.hov #cur-ring {
 
 .featured-list {
   position: relative;
+  display: block;
+  border-top: 1px solid var(--line-mid);
+  border-bottom: 1px solid var(--line-mid);
+  background:
+    radial-gradient(ellipse at 16% 6%, rgba(210, 162, 95, 0.13), transparent 34%),
+    radial-gradient(ellipse at 92% 74%, rgba(111, 147, 155, 0.055), transparent 34%);
 }
 
 .featured-card {
+  min-width: 0;
   border-bottom: 1px solid var(--line);
+}
+
+.featured-card:last-child {
+  border-bottom: 0;
 }
 
 .project-card-button {
   position: relative;
   isolation: isolate;
   width: 100%;
+  min-height: clamp(176px, 18vw, 244px);
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) clamp(230px, 26vw, 320px);
-  gap: 26px;
+  grid-template-columns: 68px minmax(0, 1fr) minmax(230px, 0.38fr);
+  gap: clamp(18px, 3.2vw, 48px);
   align-items: center;
-  padding: 34px 8px 34px 0;
+  padding: clamp(24px, 3.4vw, 42px) 8px clamp(24px, 3.4vw, 42px) 0;
   text-align: left;
   color: var(--text);
   background: transparent;
-  transition: background 260ms var(--ease-out);
+  overflow: hidden;
+  transition:
+    background 260ms var(--ease-out),
+    transform 320ms var(--ease-out),
+    color 260ms var(--ease-out);
 }
 
 .project-card-button::before {
@@ -957,21 +1006,23 @@ body.cursor-enabled.hov #cur-ring {
   z-index: -1;
   opacity: 0;
   background:
-    radial-gradient(circle at var(--spot-x, 30%) var(--spot-y, 50%), rgba(210, 162, 95, 0.16), transparent 46%),
-    linear-gradient(90deg, rgba(253, 248, 236, 0.6), rgba(242, 226, 198, 0.16) 70%, transparent);
-  transition: opacity 260ms var(--ease-out);
+    radial-gradient(circle at var(--spot-x, 42%) var(--spot-y, 40%), rgba(210, 162, 95, 0.23), transparent 42%),
+    linear-gradient(180deg, rgba(253, 248, 236, 0.72), rgba(242, 226, 198, 0.14));
+  transition:
+    opacity 260ms var(--ease-out),
+    transform 480ms var(--ease-out);
 }
 
 .project-card-button::after {
   content: "";
   position: absolute;
   left: 0;
-  top: 0;
+  right: 0;
   bottom: 0;
-  width: 2px;
-  background: var(--accent);
-  transform: scaleY(0);
-  transform-origin: top;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transform: scaleX(0);
+  transform-origin: left;
   transition: transform 320ms var(--ease-out);
 }
 
@@ -983,13 +1034,20 @@ body.cursor-enabled.hov #cur-ring {
 
 .project-card-button:hover::after,
 .project-card-button:focus-visible::after {
-  transform: scaleY(1);
+  transform: scaleX(1);
+}
+
+.project-card-button:hover,
+.project-card-button:focus-visible {
+  transform: none;
 }
 
 .project-row-rail {
-  align-self: start;
-  display: grid;
-  gap: 10px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 12px;
+  align-self: stretch;
   padding-top: 8px;
 }
 
@@ -1003,7 +1061,7 @@ body.cursor-enabled.hov #cur-ring {
 
 .project-card-button:hover .project-number,
 .project-card-button:focus-visible .project-number {
-  transform: translateX(6px);
+  transform: translateX(4px);
 }
 
 .project-card-copy {
@@ -1025,7 +1083,7 @@ body.cursor-enabled.hov #cur-ring {
   display: block;
   color: var(--text);
   font-family: var(--font-display);
-  font-size: clamp(2rem, 3.2vw, 3.2rem);
+  font-size: clamp(2.35rem, 5.2vw, 5.45rem);
   line-height: 0.96;
   letter-spacing: 0;
   transition: color 240ms var(--ease-out);
@@ -1037,16 +1095,16 @@ body.cursor-enabled.hov #cur-ring {
 
 .project-card-text {
   display: block;
-  max-width: 56ch;
+  max-width: 64ch;
   color: var(--text-soft);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   line-height: 1.52;
 }
 
 .project-meta {
   display: block;
   color: var(--text-muted);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   letter-spacing: 0.06em;
   line-height: 1.7;
   text-transform: uppercase;
@@ -1076,12 +1134,12 @@ body.cursor-enabled.hov #cur-ring {
 
 .toggle-icon {
   position: relative;
-  width: 34px;
-  height: 30px;
+  width: 38px;
+  height: 34px;
   flex: 0 0 auto;
   border: 1px solid var(--line-mid);
   border-radius: var(--radius);
-  background: rgba(253, 248, 236, 0.6);
+  background: rgba(253, 248, 236, 0.5);
   transition:
     border-color 260ms var(--ease-out),
     background 260ms var(--ease-out);
@@ -1118,9 +1176,12 @@ body.cursor-enabled.hov #cur-ring {
 
 .project-preview {
   position: relative;
-  min-height: 150px;
+  min-height: clamp(124px, 13vw, 178px);
+  max-width: 320px;
+  width: 100%;
   display: grid;
   place-items: center;
+  justify-self: end;
   overflow: hidden;
   -webkit-mask-image:
     radial-gradient(ellipse at 50% 50%, #000 0%, #000 56%, transparent 88%);
@@ -1138,7 +1199,7 @@ body.cursor-enabled.hov #cur-ring {
   z-index: 1;
   width: 100%;
   height: 100%;
-  min-height: 150px;
+  min-height: clamp(124px, 13vw, 178px);
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1424,7 +1485,7 @@ body.stage-lock {
   z-index: 70;
   display: grid;
   place-items: center;
-  padding: clamp(12px, 3vw, 44px);
+  padding: clamp(10px, 2.2vw, 28px);
 }
 
 .project-stage[hidden] {
@@ -1434,11 +1495,14 @@ body.stage-lock {
 .stage-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(250, 243, 229, 0.78), rgba(239, 226, 203, 0.88));
-  backdrop-filter: blur(14px) saturate(1.04);
-  -webkit-backdrop-filter: blur(14px) saturate(1.04);
+  background:
+    radial-gradient(circle at 70% 18%, rgba(111, 147, 155, 0.1), transparent 36rem),
+    radial-gradient(circle at 20% 88%, rgba(156, 81, 38, 0.16), transparent 34rem),
+    linear-gradient(180deg, rgba(250, 243, 229, 0.82), rgba(234, 217, 188, 0.94));
+  backdrop-filter: blur(6px) saturate(1.02);
+  -webkit-backdrop-filter: blur(6px) saturate(1.02);
   opacity: 0;
-  transition: opacity 340ms var(--ease-out);
+  transition: opacity 220ms var(--ease-out);
 }
 
 .project-stage.is-open .stage-scrim {
@@ -1447,22 +1511,22 @@ body.stage-lock {
 
 .stage-panel {
   position: relative;
-  width: min(1180px, 100%);
-  height: min(820px, 100%);
+  width: min(1500px, 100%);
+  height: min(880px, 100%);
   overflow: hidden;
   border: 1px solid var(--line-mid);
-  border-radius: 6px;
+  border-radius: 4px;
   background:
-    radial-gradient(ellipse at 22% 18%, rgba(210, 162, 95, 0.16), transparent 42%),
-    radial-gradient(ellipse at 86% 8%, rgba(200, 133, 75, 0.1), transparent 36%),
-    linear-gradient(180deg, #fdf8ec, #f3e6cd);
+    radial-gradient(ellipse at 16% 16%, rgba(210, 162, 95, 0.16), transparent 44%),
+    radial-gradient(ellipse at 62% 52%, rgba(111, 147, 155, 0.08), transparent 48%),
+    linear-gradient(115deg, #21140d 0%, #2d1a0e 45%, #f7ead4 45.2%, #fbf3e3 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.66),
-    0 36px 90px rgba(62, 31, 10, 0.18),
-    0 8px 26px rgba(62, 31, 10, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 32px 82px rgba(36, 18, 7, 0.2),
+    0 10px 26px rgba(36, 18, 7, 0.1);
   opacity: 0;
   transition:
-    transform 560ms cubic-bezier(0.32, 0.72, 0.12, 1),
+    transform 360ms cubic-bezier(0.32, 0.72, 0.12, 1),
     opacity 200ms var(--ease-out);
   will-change: transform;
 }
@@ -1470,12 +1534,23 @@ body.stage-lock {
 .stage-panel::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 26px;
-  bottom: 26px;
-  width: 2px;
-  background: linear-gradient(180deg, transparent, var(--accent) 16%, var(--accent) 84%, transparent);
-  opacity: 0.85;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 28% 36%, rgba(210, 162, 95, 0.18), transparent 34%),
+    linear-gradient(90deg, rgba(13, 7, 4, 0.36), transparent 42%, rgba(255, 246, 230, 0.62) 72%, rgba(255, 246, 230, 0.86));
+  opacity: 0.9;
+}
+
+.stage-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(115deg, rgba(255, 244, 222, 0.018) 0 1px, transparent 1px 7px),
+    linear-gradient(12deg, rgba(20, 10, 4, 0.018) 0 1px, transparent 1px 9px);
+  opacity: 0.34;
 }
 
 .project-stage.is-open .stage-panel {
@@ -1484,22 +1559,22 @@ body.stage-lock {
 
 .project-stage.is-closing .stage-panel {
   transition:
-    transform 400ms cubic-bezier(0.5, 0, 0.3, 1),
-    opacity 220ms var(--ease-out) 150ms;
+    transform 260ms cubic-bezier(0.5, 0, 0.3, 1),
+    opacity 160ms var(--ease-out) 80ms;
   opacity: 0;
 }
 
 .stage-frame {
+  position: relative;
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 14px;
-  padding: 24px clamp(20px, 3vw, 34px) 24px;
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0;
   opacity: 0;
   transform: translateY(10px);
   transition:
-    opacity 320ms var(--ease-out) 230ms,
-    transform 440ms var(--ease-out) 210ms;
+    opacity 220ms var(--ease-out) 90ms,
+    transform 300ms var(--ease-out) 80ms;
 }
 
 .project-stage.is-open .stage-frame {
@@ -1514,25 +1589,43 @@ body.stage-lock {
 }
 
 .stage-head {
+  position: absolute;
+  z-index: 6;
+  top: clamp(20px, 3vw, 38px);
+  left: clamp(22px, 3.2vw, 54px);
+  right: clamp(18px, 2.4vw, 38px);
   display: flex;
   align-items: start;
   justify-content: space-between;
-  gap: 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
+  gap: 22px;
+  padding-bottom: 0;
+  border-bottom: 0;
+  pointer-events: none;
 }
 
 .stage-head-copy {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  max-width: min(55vw, 720px);
+}
+
+.stage-head .eyebrow {
+  color: rgba(248, 238, 217, 0.82);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+}
+
+.stage-head .eyebrow::before {
+  background: var(--gold);
 }
 
 .stage-head h3 {
-  color: var(--text);
+  color: #fbf2df;
   font-family: var(--font-display);
-  font-size: clamp(2.1rem, 3.4vw, 3.3rem);
+  font-size: clamp(3.2rem, 6vw, 6.7rem);
   font-weight: 400;
-  line-height: 0.95;
+  line-height: 0.82;
+  max-width: 8.8ch;
+  text-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
 }
 
 .stage-head h3:focus {
@@ -1546,15 +1639,16 @@ body.stage-lock {
 }
 
 .stage-close {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border: 1px solid var(--line-mid);
+  border: 1px solid rgba(255, 232, 190, 0.28);
   border-radius: var(--radius);
-  background: rgba(253, 248, 236, 0.6);
-  color: var(--accent-deep);
+  background: rgba(39, 21, 9, 0.54);
+  color: var(--dark-text);
+  pointer-events: auto;
   transition:
     transform 220ms var(--ease-out),
     border-color 220ms var(--ease-out),
@@ -1565,9 +1659,9 @@ body.stage-lock {
 .stage-close:hover,
 .stage-close:focus-visible {
   transform: translateY(-1px);
-  border-color: rgba(39, 21, 9, 0.8);
-  background: #2e1a0b;
-  color: var(--dark-text);
+  border-color: rgba(255, 232, 190, 0.62);
+  background: #f8eed9;
+  color: var(--text);
 }
 
 .stage-close svg {
@@ -1580,23 +1674,29 @@ body.stage-lock {
 }
 
 .stage-rail {
-  display: flex;
-  flex-wrap: wrap;
+  position: absolute;
+  z-index: 6;
+  left: clamp(22px, 3.2vw, 54px);
+  right: calc(38% + clamp(18px, 3vw, 48px));
+  bottom: clamp(18px, 2.6vw, 34px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
 .stage-rail-button {
   display: inline-flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--line-mid);
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 232, 190, 0.2);
   border-radius: var(--radius);
-  background: rgba(253, 248, 236, 0.55);
-  color: var(--text-soft);
+  background: rgba(29, 14, 6, 0.58);
+  color: rgba(244, 232, 210, 0.74);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1608,19 +1708,26 @@ body.stage-lock {
 }
 
 .stage-rail-index {
-  color: var(--accent);
+  color: var(--gold);
+}
+
+.stage-rail-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stage-rail-button:hover,
 .stage-rail-button:focus-visible {
-  border-color: var(--line-strong);
-  color: var(--text);
+  border-color: rgba(255, 232, 190, 0.48);
+  background: rgba(29, 14, 6, 0.72);
+  color: #fff6e7;
 }
 
 .stage-rail-button.is-active {
-  border-color: rgba(39, 21, 9, 0.85);
-  background: #2e1a0b;
-  color: var(--dark-text);
+  border-color: rgba(255, 232, 190, 0.66);
+  background: rgba(248, 238, 217, 0.94);
+  color: var(--text);
 }
 
 .stage-rail-button.is-active .stage-rail-index {
@@ -1629,8 +1736,9 @@ body.stage-lock {
 
 .stage-layout {
   display: grid;
-  grid-template-columns: minmax(340px, 0.95fr) minmax(0, 1.05fr);
-  gap: 26px;
+  grid-template-columns: minmax(0, 1.58fr) minmax(340px, 0.92fr);
+  gap: 0;
+  height: 100%;
   min-height: 0;
 }
 
@@ -1638,16 +1746,21 @@ body.stage-lock {
   position: relative;
   overflow: hidden;
   min-height: 0;
+  border-right: 1px solid rgba(39, 21, 9, 0.22);
   background:
-    radial-gradient(ellipse at 46% 44%, rgba(210, 162, 95, 0.09), transparent 70%);
-  -webkit-mask-image:
-    linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%),
-    linear-gradient(180deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
-  mask-image:
-    linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%),
-    linear-gradient(180deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
+    radial-gradient(ellipse at 44% 42%, rgba(210, 162, 95, 0.1), transparent 64%),
+    linear-gradient(135deg, rgba(29, 14, 6, 0.96), rgba(54, 31, 15, 0.84) 42%, rgba(253, 248, 236, 0.12));
+}
+
+.stage-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 18%, rgba(0, 0, 0, 0.22), transparent 34%),
+    linear-gradient(180deg, rgba(15, 8, 4, 0.18), transparent 32%, rgba(15, 8, 4, 0.1));
 }
 
 .stage-visual canvas {
@@ -1666,11 +1779,13 @@ body.stage-lock {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 2px 14px 26px 2px;
+  margin-top: clamp(150px, 21vh, 216px);
+  padding: 0 clamp(22px, 3vw, 44px) 34px clamp(22px, 3vw, 44px);
   scrollbar-width: thin;
   scrollbar-color: rgba(111, 58, 26, 0.3) transparent;
   -webkit-mask-image: linear-gradient(180deg, #000 90%, transparent 100%);
   mask-image: linear-gradient(180deg, #000 90%, transparent 100%);
+  color: var(--text);
 }
 
 .stage-content,
@@ -1688,24 +1803,25 @@ body.stage-lock {
 
 .drawer-content {
   display: grid;
-  gap: 18px;
+  gap: 24px;
 }
 
 .drawer-summary {
   color: var(--text-soft);
-  font-size: 1rem;
-  line-height: 1.64;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.1vw, 2.05rem);
+  line-height: 1.08;
 }
 
 .drawer-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 0;
 }
 
 .drawer-block {
   min-width: 0;
-  padding: 14px 0 0;
+  padding: 16px 0;
   border-top: 1px solid var(--line);
 }
 
@@ -1720,6 +1836,27 @@ body.stage-lock {
   font-size: 0.9rem;
   line-height: 1.54;
   margin-top: 7px;
+}
+
+.project-stage[data-stage-mode="kerr"] .stage-visual {
+  background:
+    radial-gradient(ellipse at 56% 48%, rgba(210, 162, 95, 0.16), transparent 28%),
+    radial-gradient(ellipse at 58% 48%, rgba(0, 0, 0, 0.82), transparent 12%),
+    linear-gradient(135deg, #100805, #24140b 62%, #39200f);
+}
+
+.project-stage[data-stage-mode="neuropath"] .stage-visual {
+  background:
+    radial-gradient(ellipse at 48% 45%, rgba(111, 147, 155, 0.1), transparent 42%),
+    radial-gradient(ellipse at 24% 16%, rgba(210, 162, 95, 0.18), transparent 30%),
+    linear-gradient(135deg, #24160e, #3a2312 34%, rgba(253, 248, 236, 0.18));
+}
+
+.project-stage[data-stage-mode="motorproof"] .stage-visual,
+.project-stage[data-stage-mode="supplement"] .stage-visual {
+  background:
+    radial-gradient(ellipse at 42% 44%, rgba(210, 162, 95, 0.12), transparent 56%),
+    linear-gradient(135deg, #2b190d 0%, #4b2d16 24%, rgba(253, 248, 236, 0.22) 100%);
 }
 
 /* ============================================================
@@ -1916,7 +2053,7 @@ body.stage-lock {
 .site-footer {
   position: relative;
   overflow: hidden;
-  padding: 110px 0 120px;
+  padding: 110px 0;
   color: var(--dark-text);
   background:
     radial-gradient(circle at 76% 10%, rgba(210, 162, 95, 0.17), transparent 32rem),
@@ -2013,9 +2150,13 @@ body.stage-lock {
    ============================================================ */
 
 @media (max-width: 1180px) {
+  .featured-list {
+    background-size: 100% 100%;
+  }
+
   .project-card-button {
-    grid-template-columns: 64px minmax(0, 1fr) clamp(200px, 28vw, 260px);
-    gap: 20px;
+    grid-template-columns: 58px minmax(0, 1fr) minmax(190px, 0.36fr);
+    gap: clamp(16px, 2.6vw, 30px);
   }
 
   .archive-row {
@@ -2040,7 +2181,7 @@ body.stage-lock {
   }
 
   .ribbon-canvas {
-    height: 190px;
+    height: 230px;
   }
 
   .proof-grid {
@@ -2064,25 +2205,22 @@ body.stage-lock {
   }
 
   .project-card-button {
-    grid-template-columns: 56px minmax(0, 1fr);
-    grid-template-areas:
-      "rail copy"
-      "rail preview";
+    grid-template-columns: 54px minmax(0, 1fr) minmax(150px, 0.34fr);
+    padding-right: 0;
   }
 
   .project-row-rail {
-    grid-area: rail;
+    padding-top: 4px;
   }
 
-  .project-card-copy {
-    grid-area: copy;
+  .project-card-footer {
+    grid-column: 2 / -1;
   }
 
   .project-preview {
-    grid-area: preview;
     min-height: 130px;
-    max-width: 380px;
-    justify-self: start;
+    max-width: none;
+    justify-self: end;
     width: 100%;
   }
 
@@ -2111,17 +2249,49 @@ body.stage-lock {
     height: 100%;
     border: 0;
     border-radius: 0;
+    overflow-y: auto;
+    background:
+      radial-gradient(ellipse at 10% 0%, rgba(210, 162, 95, 0.18), transparent 36%),
+      linear-gradient(180deg, #f9f0df, #f0dec0);
   }
 
   .stage-panel::before {
-    top: 0;
-    bottom: 0;
+    background:
+      linear-gradient(180deg, rgba(255, 246, 230, 0.8), transparent 28%),
+      radial-gradient(ellipse at 50% 26%, rgba(111, 147, 155, 0.08), transparent 42%);
   }
 
   .stage-frame {
-    grid-template-rows: auto auto 220px minmax(0, 1fr);
-    padding: 18px 18px 14px;
+    min-height: 100%;
+    grid-template-rows: auto auto minmax(220px, 34vh) minmax(0, 1fr);
+    padding: 18px 18px 16px;
     gap: 12px;
+  }
+
+  .stage-head {
+    position: relative;
+    inset: auto;
+    pointer-events: auto;
+    color: var(--text);
+  }
+
+  .stage-head-copy {
+    max-width: min(100%, 34rem);
+  }
+
+  .stage-head .eyebrow {
+    color: var(--accent);
+    text-shadow: none;
+  }
+
+  .stage-head .eyebrow::before {
+    background: var(--accent);
+  }
+
+  .stage-head h3 {
+    color: var(--text);
+    max-width: 12ch;
+    text-shadow: none;
   }
 
   .stage-layout {
@@ -2129,6 +2299,9 @@ body.stage-lock {
   }
 
   .stage-rail {
+    position: relative;
+    inset: auto;
+    display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
@@ -2142,6 +2315,29 @@ body.stage-lock {
 
   .stage-rail-button {
     flex: 0 0 auto;
+    background: rgba(253, 248, 236, 0.68);
+    border-color: var(--line-mid);
+    color: var(--text-soft);
+  }
+
+  .stage-rail-button.is-active {
+    background: #2e1a0b;
+    color: var(--dark-text);
+  }
+
+  .stage-visual {
+    min-height: 220px;
+    border: 1px solid rgba(111, 58, 26, 0.18);
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .stage-content {
+    margin-top: 0;
+    padding: 6px 2px 24px;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .stage-head h3 {
@@ -2205,7 +2401,7 @@ body.stage-lock {
   }
 
   .ribbon-canvas {
-    height: 150px;
+    height: 180px;
   }
 
   .proof-grid {
@@ -2242,12 +2438,16 @@ body.stage-lock {
 
   .project-card-button {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "rail"
-      "copy"
-      "preview";
     gap: 14px;
     padding: 26px 0;
+  }
+
+  .featured-card {
+    border-top: 1px solid var(--line);
+  }
+
+  .featured-card:first-child {
+    border-top: 0;
   }
 
   .project-row-rail {
@@ -2263,26 +2463,50 @@ body.stage-lock {
     min-height: 140px;
   }
 
+  .project-preview {
+    justify-self: stretch;
+    max-width: none;
+  }
+
+  .project-card-footer {
+    grid-column: auto;
+  }
+
   .drawer-grid {
     grid-template-columns: 1fr;
   }
 
   .archive-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-    padding: 20px 0;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 22px 0;
   }
 
   .archive-index {
+    grid-column: 1;
+    grid-row: 1;
     padding-top: 0;
   }
 
+  .archive-name {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+
   .archive-desc {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+
+  .archive-stack {
+    grid-column: 1 / -1;
+    text-align: left;
     padding-top: 0;
   }
 
   .site-footer {
-    padding: 64px 0 72px;
+    padding: 64px 0;
   }
 
   .footer-grid {
